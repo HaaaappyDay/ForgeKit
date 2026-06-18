@@ -1,0 +1,145 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "forgekit.adapter.v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "id",
+    "type",
+    "command",
+    "args",
+    "working_directory",
+    "timeout_seconds",
+    "session_mode",
+    "resume",
+    "write_policy",
+    "auth",
+    "billing",
+    "env_allowlist"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "forgekit.adapter.v1"
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "type": {
+      "type": "string",
+      "enum": ["codex", "claude-code"]
+    },
+    "command": {
+      "type": "string",
+      "minLength": 1
+    },
+    "args": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "working_directory": {
+      "type": "string",
+      "enum": ["project_root"]
+    },
+    "timeout_seconds": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "session_mode": {
+      "type": "string",
+      "enum": ["resumable_role_session"]
+    },
+    "resume": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["strategy"],
+      "properties": {
+        "strategy": {
+          "type": "string",
+          "enum": ["adapter_defined"]
+        },
+        "session_id_ref": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "write_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["default_mode", "enforcement", "adapter_permission_args", "warn_if_unenforceable"],
+      "properties": {
+        "default_mode": {
+          "type": "string",
+          "enum": ["read_only_enforced", "no_write_intent", "write_with_confirmation", "write_allowed"]
+        },
+        "enforcement": {
+          "type": "string",
+          "enum": ["best_effort", "enforced"]
+        },
+        "adapter_permission_args": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "warn_if_unenforceable": {
+          "type": "boolean"
+        }
+      }
+    },
+    "auth": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode"],
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["external_cli_auth", "env_api_key", "secret_ref"]
+        },
+        "description": {
+          "type": "string"
+        },
+        "env_allowlist": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "billing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "cost_tracking", "budget_policy"],
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["user_subscription", "api_key_metered", "unknown"]
+        },
+        "cost_tracking": {
+          "type": "string",
+          "enum": ["unavailable", "provider_reported_or_unknown", "reported"]
+        },
+        "budget_policy": {
+          "type": "string",
+          "enum": ["soft"]
+        }
+      }
+    },
+    "capabilities": {
+      "type": "object"
+    },
+    "env_allowlist": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}
+

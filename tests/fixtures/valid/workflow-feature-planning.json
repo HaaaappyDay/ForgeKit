@@ -1,0 +1,37 @@
+{
+  "schema_version": "forgekit.workflow.v1",
+  "id": "feature-planning",
+  "name": "Feature Planning",
+  "version": "0.1",
+  "mode": "workflow_run",
+  "entrypoint": "clarify-requirement",
+  "repo_context": "standard",
+  "steps": [
+    {
+      "id": "clarify-requirement",
+      "role": "pm",
+      "objective": "Clarify user need, constraints, and acceptance criteria.",
+      "next": ["technical-design"],
+      "inputs": {
+        "default": ["task.input", "workflow.summary", "repo.summary"]
+      },
+      "output_schema": "handoff.v1"
+    },
+    {
+      "id": "technical-design",
+      "role": "architect",
+      "objective": "Produce technical design without editing files.",
+      "next": ["implementation-plan"],
+      "constraints": {
+        "focus_area": ["architecture", "integration risks"],
+        "forbidden_actions": ["modify_files"]
+      },
+      "output_schema": "handoff.v1"
+    }
+  ],
+  "conflict_policy": {
+    "default": "merge_role_decides",
+    "require_human_when": ["security_or_privacy_risk"]
+  }
+}
+

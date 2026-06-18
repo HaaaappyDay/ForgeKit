@@ -1,0 +1,37 @@
+{
+  "schema_version": "forgekit.adapter.v1",
+  "id": "codex-local",
+  "type": "codex",
+  "command": "/home/lotus/.nvm/versions/node/v24.15.0/lib/node_modules/@openai/codex/node_modules/@openai/codex-linux-arm64/vendor/aarch64-unknown-linux-musl/bin/codex",
+  "args": [],
+  "working_directory": "project_root",
+  "timeout_seconds": 600,
+  "session_mode": "resumable_role_session",
+  "resume": {
+    "strategy": "adapter_defined",
+    "session_id_ref": "run.role_sessions.<role_id>.external_session_id"
+  },
+  "write_policy": {
+    "default_mode": "no_write_intent",
+    "enforcement": "best_effort",
+    "adapter_permission_args": [],
+    "warn_if_unenforceable": true
+  },
+  "auth": {
+    "mode": "external_cli_auth",
+    "description": "Use the CLI's existing logged-in account or subscription."
+  },
+  "billing": {
+    "mode": "user_subscription",
+    "cost_tracking": "unavailable",
+    "budget_policy": "soft"
+  },
+  "capabilities": {
+    "resumable_session": true,
+    "structured_output_prompting": true,
+    "file_editing": false,
+    "tool_use": "external_agent_defined"
+  },
+  "env_allowlist": []
+}
+

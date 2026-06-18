@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "forgekit.run.v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "run_id", "workflow_id", "status", "role_sessions"],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "forgekit.run.v1"
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "workflow_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "type": "string",
+      "enum": ["pending", "running", "completed", "failed"]
+    },
+    "role_sessions": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["role_id", "adapter_id", "external_session_id", "resume_strategy", "created_at", "status"],
+        "properties": {
+          "role_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "adapter_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "external_session_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "resume_strategy": {
+            "type": "string",
+            "enum": ["adapter_defined", "codex_exec_resume", "claude_resume"]
+          },
+          "created_at": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  }
+}
+

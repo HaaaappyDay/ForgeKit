@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "workflow-summary.v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "run_id",
+    "revision",
+    "updated_after_step",
+    "task_summary",
+    "completed_steps",
+    "current_assumptions",
+    "current_risks",
+    "current_open_questions",
+    "next_step_hint"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "workflow-summary.v1"
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "updated_after_step": {
+      "type": "string",
+      "minLength": 1
+    },
+    "task_summary": {
+      "type": "string",
+      "minLength": 1
+    },
+    "completed_steps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["step_id", "role_id", "handoff_ref", "summary", "key_decisions", "risks", "open_questions"],
+        "properties": {
+          "step_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "role_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "handoff_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "summary": {
+            "type": "string",
+            "minLength": 1
+          },
+          "key_decisions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "risks": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "open_questions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "current_assumptions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "current_risks": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "current_open_questions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "next_step_hint": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}
+

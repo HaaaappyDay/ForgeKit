@@ -1,0 +1,17 @@
+{
+  "name": "forgekit",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "forge": "./src/cli.js"
+  },
+  "scripts": {
+    "test": "node --test",
+    "schema:list": "node src/cli.js schema list"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
+

@@ -1,0 +1,32 @@
+{
+  "schema_version": "handoff.v1",
+  "run_id": "2026-06-16T102233-feature-planning",
+  "step_id": "technical-design",
+  "role_id": "architect",
+  "status": "completed",
+  "summary": "Proposed a service-level design for login.",
+  "decisions": [
+    {
+      "decision": "Use existing auth boundary",
+      "reason": "Avoid creating a parallel login path",
+      "alternatives": ["Create new auth module"]
+    }
+  ],
+  "assumptions": [],
+  "risks": [],
+  "open_questions": [],
+  "out_of_scope": [],
+  "markdown_body": "# Technical Design\n\nDetailed human-readable content.",
+  "next_handoff": {
+    "recommended_role": "engineer",
+    "instructions": "Turn the design into an implementation plan."
+  },
+  "artifacts": [
+    {
+      "path": "steps/02-technical-design/attempt-01/output.md",
+      "type": "markdown",
+      "generated_from": "markdown_body"
+    }
+  ]
+}
+

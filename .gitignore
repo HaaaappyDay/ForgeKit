@@ -1,0 +1,9 @@
+.forgekit/runs/
+.forgekit/cache/
+.forgekit/tmp/
+.forgekit/secrets*
+docs/specs/*.draft.md
+node_modules/
+coverage/
+.env
+.env.*

@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "forgekit.config.v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "project", "defaults", "roles", "adapters", "budgets"],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "forgekit.config.v1"
+    },
+    "project": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "defaults": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["workflow", "repo_context", "confirmation"],
+      "properties": {
+        "workflow": {
+          "type": "string",
+          "minLength": 1
+        },
+        "repo_context": {
+          "type": "string",
+          "minLength": 1
+        },
+        "confirmation": {
+          "type": "string",
+          "enum": ["before_run_only"]
+        }
+      }
+    },
+    "roles": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["definition", "adapter"],
+        "properties": {
+          "definition": {
+            "type": "string",
+            "minLength": 1
+          },
+          "adapter": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "adapters": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "budgets": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["max_invocations", "max_retries_per_step", "max_duration_minutes", "max_output_bytes"],
+      "properties": {
+        "max_invocations": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_retries_per_step": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "max_duration_minutes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_output_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "token_budget": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}
+

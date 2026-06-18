@@ -1,0 +1,135 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "forgekit.role.v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "id",
+    "name",
+    "description",
+    "responsibilities",
+    "expertise",
+    "write_policy",
+    "can_do",
+    "cannot_do",
+    "must_handoff_to",
+    "required_sections"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "forgekit.role.v1"
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
+    "responsibilities": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "expertise": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["domains", "depth", "style", "output_formats", "permissions"],
+      "properties": {
+        "domains": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "depth": {
+          "type": "string",
+          "enum": ["basic", "intermediate", "senior", "expert"]
+        },
+        "style": {
+          "type": "string",
+          "minLength": 1
+        },
+        "output_formats": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["handoff_json", "markdown", "checklist"]
+          }
+        },
+        "permissions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["read_context", "produce_artifact", "request_handoff"]
+          }
+        }
+      }
+    },
+    "write_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "allowed_paths", "requires_human_confirmation"],
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["read_only_enforced", "no_write_intent", "write_with_confirmation", "write_allowed"]
+        },
+        "allowed_paths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "requires_human_confirmation": {
+          "type": "boolean"
+        }
+      }
+    },
+    "can_do": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "cannot_do": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "must_handoff_to": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["when", "role"],
+        "properties": {
+          "when": {
+            "type": "string",
+            "minLength": 1
+          },
+          "role": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "required_sections": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}
+

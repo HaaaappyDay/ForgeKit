@@ -1,0 +1,28 @@
+{
+  "schema_version": "forgekit.config.v1",
+  "project": {
+    "name": "forgekit-fixture"
+  },
+  "defaults": {
+    "workflow": "feature-planning",
+    "repo_context": "standard",
+    "confirmation": "before_run_only"
+  },
+  "roles": {
+    "planner": {
+      "definition": ".forgekit/roles/planner.json",
+      "adapter": "codex-local"
+    }
+  },
+  "adapters": {
+    "codex-local": ".forgekit/adapters/codex.json"
+  },
+  "budgets": {
+    "max_invocations": 8,
+    "max_retries_per_step": 1,
+    "max_duration_minutes": 30,
+    "max_output_bytes": 200000,
+    "token_budget": "[TBD]"
+  }
+}
+

@@ -1,0 +1,17 @@
+{
+  "schema_version": "forgekit.run.v1",
+  "run_id": "2026-06-16T102233-feature-planning",
+  "workflow_id": "feature-planning",
+  "status": "running",
+  "role_sessions": {
+    "planner": {
+      "role_id": "planner",
+      "adapter_id": "codex-local",
+      "external_session_id": "019eda76-41a5-7c93-b4bd-6fb071c64730",
+      "resume_strategy": "codex_exec_resume",
+      "created_at": "2026-06-16T10:22:33Z",
+      "status": "active"
+    }
+  }
+}
+

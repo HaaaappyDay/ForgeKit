@@ -1,0 +1,23 @@
+{
+  "schema_version": "workflow-summary.v1",
+  "run_id": "2026-06-16T102233-feature-planning",
+  "revision": 1,
+  "updated_after_step": "clarify-requirement",
+  "task_summary": "Add passwordless login.",
+  "completed_steps": [
+    {
+      "step_id": "clarify-requirement",
+      "role_id": "pm",
+      "handoff_ref": "steps/01-clarify-requirement/attempt-01/handoff.json",
+      "summary": "Clarified target users and acceptance criteria.",
+      "key_decisions": ["Use email magic link as first pass"],
+      "risks": ["Email deliverability may affect login success"],
+      "open_questions": []
+    }
+  ],
+  "current_assumptions": [],
+  "current_risks": ["Email deliverability may affect login success"],
+  "current_open_questions": [],
+  "next_step_hint": "technical-design"
+}
+

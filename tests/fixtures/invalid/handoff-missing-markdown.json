@@ -1,0 +1,19 @@
+{
+  "schema_version": "handoff.v1",
+  "run_id": "2026-06-16T102233-feature-planning",
+  "step_id": "technical-design",
+  "role_id": "architect",
+  "status": "completed",
+  "summary": "Proposed a service-level design for login.",
+  "decisions": [],
+  "assumptions": [],
+  "risks": [],
+  "open_questions": [],
+  "out_of_scope": [],
+  "next_handoff": {
+    "recommended_role": "engineer",
+    "instructions": "Turn the design into an implementation plan."
+  },
+  "artifacts": []
+}
+
