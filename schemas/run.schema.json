@@ -138,8 +138,12 @@
                 "prompt_ref",
                 "stdout_ref",
                 "stderr_ref",
+                "handoff_ref",
+                "markdown_ref",
+                "validation_ref",
                 "exit_code",
                 "external_session_id",
+                "correction_count",
                 "error"
               ],
               "properties": {
@@ -173,11 +177,25 @@
                   "type": "string",
                   "minLength": 1
                 },
+                "handoff_ref": {
+                  "type": "string"
+                },
+                "markdown_ref": {
+                  "type": "string"
+                },
+                "validation_ref": {
+                  "type": "string",
+                  "minLength": 1
+                },
                 "exit_code": {
                   "type": "integer"
                 },
                 "external_session_id": {
                   "type": "string"
+                },
+                "correction_count": {
+                  "type": "integer",
+                  "minimum": 0
                 },
                 "error": {
                   "type": "string"

@@ -37,7 +37,7 @@ function printHelp() {
   forge workflow start <workflow-id> --input <text> [--yes]
   forge workflow start <workflow-id> --input-file <path> [--yes]
 
-Phase 4 records run trace and raw adapter logs. Handoff parsing and validation are implemented in later phases.`);
+Records run trace, validates handoff JSON, writes output.md, and self-corrects once when validation fails.`);
 }
 
 async function readTaskInput(options) {
@@ -77,4 +77,3 @@ export async function runWorkflowStartCommand(args, cwd = process.cwd()) {
     process.exitCode = 1;
   }
 }
-

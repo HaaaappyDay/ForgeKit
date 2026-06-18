@@ -28,6 +28,26 @@ async function patchAdapterCommand(projectRoot, adapterFile, command) {
   await writeJsonFile(path, adapter);
 }
 
+function fakeHandoffShellFunction() {
+  return `handoff() {
+  prompt="$1"
+  run_id=$(printf "%s" "$prompt" | sed -n 's/^- run_id: //p' | head -n 1)
+  step_id=$(printf "%s" "$prompt" | sed -n 's/^- step_id: //p' | head -n 1)
+  if [ -z "$role_id" ]; then
+    role_id=$(printf "%s" "$prompt" | sed -n 's/^- role_id: //p' | head -n 1)
+  fi
+  if [ -z "$step_id" ]; then
+    step_id=$(printf "%s" "$prompt" | sed -n 's/^- id: //p' | sed -n '2p')
+  fi
+  if [ -z "$role_id" ]; then
+    role_id=$(printf "%s" "$prompt" | sed -n 's/^- id: //p' | head -n 1)
+  fi
+  printf '{"schema_version":"handoff.v1","run_id":"%s","step_id":"%s","role_id":"%s","status":"completed","summary":"Valid handoff for %s","decisions":[],"assumptions":[],"risks":[],"open_questions":[],"out_of_scope":[],"markdown_body":"# Output for %s","next_handoff":{"recommended_role":"next","instructions":"Continue to the next step."},"artifacts":[]}
+' "$run_id" "$step_id" "$role_id" "$step_id" "$step_id"
+}
+`;
+}
+
 async function runDirs(projectRoot) {
   const entries = await readdir(join(projectRoot, ".forgekit/runs"), { withFileTypes: true });
   return entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name);
@@ -42,17 +62,23 @@ test("runWorkflow records a completed linear run with role sessions and raw logs
     await writeExecutable(
       fakeCodex,
       `#!/bin/sh
-cat >/dev/null
+${fakeHandoffShellFunction()}
+prompt=$(cat)
 echo '{"type":"thread.started","thread_id":"fake-codex-session"}'
-echo '{"type":"turn.completed"}'
+handoff "$prompt"
 exit 0
 `
     );
     await writeExecutable(
       fakeClaude,
       `#!/bin/sh
+${fakeHandoffShellFunction()}
+for last
+do
+  prompt="$last"
+done
 echo '{"type":"system","subtype":"init","session_id":"fake-claude-session"}'
-echo '{"type":"result","session_id":"fake-claude-session"}'
+handoff "$prompt"
 exit 0
 `
     );
@@ -63,7 +89,7 @@ exit 0
       workflowId: "feature-planning",
       taskInput: "Add passwordless login",
       projectRoot: dir,
-      env: { PATH: dir, HOME: dir }
+      env: { PATH: `${dir}:/usr/bin:/bin`, HOME: dir }
     });
 
     assert.equal(run.status, "completed");
@@ -83,6 +109,9 @@ exit 0
     const persisted = await readJsonFile(join(dir, ".forgekit/runs", run.run_id, "run.json"));
     assert.equal(persisted.status, "completed");
     assert.equal(persisted.steps[0].attempts[0].prompt_ref, "steps/01-clarify-requirement/attempt-01/prompt.md");
+    assert.equal(persisted.steps[0].attempts[0].handoff_ref, "steps/01-clarify-requirement/attempt-01/handoff.json");
+    assert.equal(persisted.steps[0].attempts[0].markdown_ref, "steps/01-clarify-requirement/attempt-01/output.md");
+    assert.equal(persisted.steps[0].attempts[0].validation_ref, "steps/01-clarify-requirement/attempt-01/validation.json");
 
     const prompt = await readFile(
       join(dir, ".forgekit/runs", run.run_id, "steps/01-clarify-requirement/attempt-01/prompt.md"),
@@ -96,6 +125,12 @@ exit 0
       "utf8"
     );
     assert.match(raw, /thread.started/);
+
+    const output = await readFile(
+      join(dir, ".forgekit/runs", run.run_id, "steps/01-clarify-requirement/attempt-01/output.md"),
+      "utf8"
+    );
+    assert.match(output, /Output for clarify-requirement/);
   });
 });
 
@@ -117,7 +152,7 @@ exit 2
       workflowId: "generic-plan-review",
       taskInput: "Plan a launch checklist",
       projectRoot: dir,
-      env: { PATH: dir, HOME: dir }
+      env: { PATH: `${dir}:/usr/bin:/bin`, HOME: dir }
     });
 
     assert.equal(run.status, "failed");
@@ -131,3 +166,58 @@ exit 2
   });
 });
 
+test("runWorkflow self-corrects an invalid handoff once in the same attempt", async () => {
+  await withTempProject(async (dir) => {
+    await runInitCommand(["--template", "generic-plan-review", "--yes"], dir);
+
+    const correctingCodex = join(dir, "correcting-codex");
+    await writeExecutable(
+      correctingCodex,
+      `#!/bin/sh
+${fakeHandoffShellFunction()}
+if [ "$1" = "-p" ]; then
+  for last
+  do
+    prompt="$last"
+  done
+  echo '{"type":"system","subtype":"init","session_id":"fake-correction-session"}'
+else
+  prompt=$(cat)
+  echo '{"type":"thread.started","thread_id":"fake-correction-session"}'
+fi
+if printf "%s" "$prompt" | grep -q "failed validation"; then
+  handoff "$prompt"
+else
+  run_id=$(printf "%s" "$prompt" | sed -n 's/^- run_id: //p' | head -n 1)
+  step_id=$(printf "%s" "$prompt" | sed -n 's/^- id: //p' | sed -n '2p')
+  role_id=$(printf "%s" "$prompt" | sed -n 's/^- id: //p' | head -n 1)
+  printf '{"schema_version":"handoff.v1","run_id":"%s","step_id":"%s","role_id":"%s","status":"completed","summary":"Missing markdown","decisions":[],"assumptions":[],"risks":[],"open_questions":[],"out_of_scope":[],"next_handoff":{"recommended_role":"next","instructions":"Continue."},"artifacts":[]}
+' "$run_id" "$step_id" "$role_id"
+fi
+exit 0
+`
+    );
+    await patchAdapterCommand(dir, "codex.json", correctingCodex);
+    await patchAdapterCommand(dir, "claude-code.json", correctingCodex);
+
+    const run = await runWorkflow({
+      workflowId: "generic-plan-review",
+      taskInput: "Plan a launch checklist",
+      projectRoot: dir,
+      env: { PATH: `${dir}:/usr/bin:/bin`, HOME: dir }
+    });
+
+    assert.equal(run.status, "completed");
+    assert.equal(run.steps[0].attempts[0].correction_count, 1);
+    assert.equal(run.steps[0].attempts[0].status, "completed");
+
+    const validation = await readJsonFile(
+      join(dir, ".forgekit/runs", run.run_id, "steps/01-plan/attempt-01/validation.json")
+    );
+    assert.equal(validation.valid, true);
+    assert.equal(validation.correction_attempted, true);
+    assert.equal(validation.correction_succeeded, true);
+    assert.equal(validation.initial.valid, false);
+    assert.equal(validation.correction.valid, true);
+  });
+});

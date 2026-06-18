@@ -39,8 +39,12 @@
           "prompt_ref": "steps/01-clarify-requirement/attempt-01/prompt.md",
           "stdout_ref": "steps/01-clarify-requirement/attempt-01/raw.log",
           "stderr_ref": "steps/01-clarify-requirement/attempt-01/error.log",
+          "handoff_ref": "steps/01-clarify-requirement/attempt-01/handoff.json",
+          "markdown_ref": "steps/01-clarify-requirement/attempt-01/output.md",
+          "validation_ref": "steps/01-clarify-requirement/attempt-01/validation.json",
           "exit_code": 0,
           "external_session_id": "019eda76-41a5-7c93-b4bd-6fb071c64730",
+          "correction_count": 0,
           "error": ""
         }
       ]

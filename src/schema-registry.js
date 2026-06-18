@@ -30,3 +30,19 @@ export async function loadSchema(id) {
   return JSON.parse(await readFile(entry.absolutePath, "utf8"));
 }
 
+export function schemaPath(id) {
+  const entry = schemas.get(id);
+  if (!entry) {
+    throw new Error(`Unknown schema id: ${id}`);
+  }
+  return entry.absolutePath;
+}
+
+export async function schemaText(id) {
+  const entry = schemas.get(id);
+  if (!entry) {
+    throw new Error(`Unknown schema id: ${id}`);
+  }
+  return readFile(entry.absolutePath, "utf8");
+}
+

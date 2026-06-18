@@ -15,15 +15,32 @@ function parseJsonLines(stdout) {
   return events;
 }
 
-function codexArgs(sessionId) {
+function codexArgs(sessionId, outputSchemaPath) {
   if (sessionId) {
-    return ["exec", "resume", "--json", sessionId, "-"];
+    return [
+      "exec",
+      "resume",
+      "--json",
+      ...(outputSchemaPath ? ["--output-schema", outputSchemaPath] : []),
+      sessionId,
+      "-"
+    ];
   }
-  return ["exec", "--json", "-s", "read-only", "-"];
+  return [
+    "exec",
+    "--json",
+    ...(outputSchemaPath ? ["--output-schema", outputSchemaPath] : []),
+    "-s",
+    "read-only",
+    "-"
+  ];
 }
 
-function claudeArgs(sessionId, prompt) {
+function claudeArgs(sessionId, prompt, outputSchemaJson) {
   const args = ["-p", "--verbose", "--output-format", "stream-json", "--tools", ""];
+  if (outputSchemaJson) {
+    args.push("--json-schema", outputSchemaJson);
+  }
   if (sessionId) {
     args.push("--resume", sessionId);
   }
@@ -70,8 +87,8 @@ export async function executeAdapterStep(adapter, prompt, options) {
   }
 
   const adapterArgs = adapter.type === "claude-code"
-    ? claudeArgs(options.externalSessionId, prompt)
-    : codexArgs(options.externalSessionId);
+    ? claudeArgs(options.externalSessionId, prompt, options.outputSchemaJson)
+    : codexArgs(options.externalSessionId, options.outputSchemaPath);
   const args = [...(adapter.args ?? []), ...adapterArgs];
   const result = await runProcess(commandResolution.resolved, args, {
     cwd,
@@ -91,4 +108,3 @@ export async function executeAdapterStep(adapter, prompt, options) {
     externalSessionId
   };
 }
-
