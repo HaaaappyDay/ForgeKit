@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { readFile } from "node:fs/promises";
+import { runAdapterProbeCommand } from "./adapter-probe-command.js";
 import { runInitCommand } from "./init-command.js";
 import { listSchemas, loadSchema } from "./schema-registry.js";
 import { validateJson } from "./schema-validator.js";
@@ -12,6 +13,7 @@ function printHelp() {
 Usage:
   forge --help
   forge init [--template <id>] [--project-name <name>] [--yes] [--force]
+  forge adapter probe <adapter-id> [--json]
   forge schema list
   forge schema validate <schema-id> <json-file>
 
@@ -37,6 +39,11 @@ async function main() {
 
   if (args[0] === "init") {
     await runInitCommand(args.slice(1));
+    return;
+  }
+
+  if (args[0] === "adapter" && args[1] === "probe") {
+    await runAdapterProbeCommand(args.slice(2));
     return;
   }
 
