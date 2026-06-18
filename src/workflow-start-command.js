@@ -1,4 +1,6 @@
 import { readFile } from "node:fs/promises";
+import { createInterface } from "node:readline/promises";
+import { buildRunPlan, formatRunPlan } from "./run-plan.js";
 import { runWorkflow } from "./workflow-runner.js";
 
 function parseStartArgs(args) {
@@ -37,7 +39,8 @@ function printHelp() {
   forge workflow start <workflow-id> --input <text> [--yes]
   forge workflow start <workflow-id> --input-file <path> [--yes]
 
-Records run trace, validates handoff JSON, writes output.md, and self-corrects once when validation fails.`);
+Shows the run plan, records run trace, validates handoff JSON, writes output.md,
+and self-corrects once when validation fails.`);
 }
 
 async function readTaskInput(options) {
@@ -47,6 +50,23 @@ async function readTaskInput(options) {
   if (options.input) return options.input;
   if (options.inputFile) return readFile(options.inputFile, "utf8");
   throw new Error("Missing task input. Use --input <text> or --input-file <path>.");
+}
+
+async function confirmRun() {
+  if (!process.stdin.isTTY) {
+    throw new Error("Use --yes for non-interactive workflow start confirmation.");
+  }
+
+  const readline = createInterface({
+    input: process.stdin,
+    output: process.stdout
+  });
+  try {
+    const answer = await readline.question("Continue? [y/N] ");
+    return /^(y|yes)$/i.test(answer.trim());
+  } finally {
+    readline.close();
+  }
 }
 
 export async function runWorkflowStartCommand(args, cwd = process.cwd()) {
@@ -60,8 +80,16 @@ export async function runWorkflowStartCommand(args, cwd = process.cwd()) {
   }
 
   const taskInput = await readTaskInput(options);
-  if (!options.yes && process.stdin.isTTY) {
-    throw new Error("Phase 4 requires --yes for non-interactive workflow start confirmation.");
+  const plan = await buildRunPlan({
+    workflowId: options.workflowId,
+    taskInput,
+    projectRoot: cwd
+  });
+  console.log(formatRunPlan(plan).trimEnd());
+
+  if (!options.yes && !(await confirmRun())) {
+    console.log("Run cancelled.");
+    return;
   }
 
   const run = await runWorkflow({

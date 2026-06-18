@@ -8,6 +8,7 @@ import { normalizeHandoffArtifacts, validateHandoffContent } from "./handoff-val
 import { buildStepPrompt } from "./prompt-builder.js";
 import { loadAdapterConfig, loadProjectConfig, loadRoleConfig, loadWorkflowConfig } from "./project-config.js";
 import { collectRepoContext } from "./repo-context.js";
+import { validateLinearWorkflow } from "./run-plan.js";
 import {
   attemptDirName,
   attemptRoot,
@@ -442,6 +443,7 @@ export async function runWorkflow({ workflowId, taskInput, projectRoot = process
     loadWorkflowConfig(workflowId, projectRoot),
     loadProjectConfig(projectRoot)
   ]);
+  validateLinearWorkflow(workflow);
   const run = createInitialRun({
     runId: createRunId(workflow.id),
     workflow,
@@ -473,6 +475,7 @@ export async function retryWorkflow({ runId, projectRoot = process.cwd(), env = 
   }
 
   const { workflow } = await loadWorkflowConfig(run.workflow_id, projectRoot);
+  validateLinearWorkflow(workflow);
   const failedIndex = run.steps.findIndex((step) => step.status === "failed");
   if (failedIndex === -1) {
     throw new Error(`Run ${runId} is failed but has no failed step.`);
