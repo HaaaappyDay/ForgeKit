@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { readFile } from "node:fs/promises";
+import { runInitCommand } from "./init-command.js";
 import { listSchemas, loadSchema } from "./schema-registry.js";
 import { validateJson } from "./schema-validator.js";
 
@@ -10,6 +11,7 @@ function printHelp() {
 
 Usage:
   forge --help
+  forge init [--template <id>] [--project-name <name>] [--yes] [--force]
   forge schema list
   forge schema validate <schema-id> <json-file>
 
@@ -33,8 +35,13 @@ async function main() {
     return;
   }
 
+  if (args[0] === "init") {
+    await runInitCommand(args.slice(1));
+    return;
+  }
+
   if (args[0] !== "schema") {
-    fail(`Command not implemented in Phase 1: ${args.join(" ")}`, 2);
+    fail(`Command not implemented: ${args.join(" ")}`, 2);
     return;
   }
 
@@ -75,4 +82,3 @@ async function main() {
 main().catch((error) => {
   fail(error instanceof Error ? error.message : String(error));
 });
-
