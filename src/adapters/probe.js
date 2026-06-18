@@ -1,7 +1,7 @@
 import { access } from "node:fs/promises";
 import { constants } from "node:fs";
 import { delimiter, isAbsolute, join, resolve } from "node:path";
-import { spawn } from "node:child_process";
+import { collectAllowedEnv, runProcess } from "../process-runner.js";
 
 const PROBE_TIMEOUT_MS = 10_000;
 
@@ -57,83 +57,15 @@ export async function resolveCommand(command, cwd = process.cwd(), env = process
   };
 }
 
-function collectEnv(adapter, baseEnv) {
-  const env = {};
-  for (const key of ["PATH", "HOME", "USER", "SHELL", "TMPDIR", "TEMP", "TMP"]) {
-    if (baseEnv[key]) env[key] = baseEnv[key];
-  }
-
-  const allowlist = new Set([
-    ...(adapter.env_allowlist ?? []),
-    ...(adapter.auth?.env_allowlist ?? [])
-  ]);
-  for (const key of allowlist) {
-    if (baseEnv[key]) env[key] = baseEnv[key];
-  }
-
-  return env;
-}
-
 function excerpt(value) {
   const trimmed = value.trim();
   if (trimmed.length <= 600) return trimmed;
   return `${trimmed.slice(0, 600)}...`;
 }
 
-function runProcess(command, args, options) {
-  const start = Date.now();
-  return new Promise((resolveResult) => {
-    const child = spawn(command, args, {
-      cwd: options.cwd,
-      env: options.env,
-      shell: false
-    });
-
-    let stdout = "";
-    let stderr = "";
-    let timedOut = false;
-
-    const timer = setTimeout(() => {
-      timedOut = true;
-      child.kill("SIGTERM");
-    }, options.timeoutMs);
-
-    child.stdout.on("data", (chunk) => {
-      stdout += chunk.toString("utf8");
-    });
-    child.stderr.on("data", (chunk) => {
-      stderr += chunk.toString("utf8");
-    });
-    child.on("error", (error) => {
-      clearTimeout(timer);
-      resolveResult({
-        exitCode: null,
-        status: "failed",
-        error: error.message,
-        stdout,
-        stderr,
-        durationMs: Date.now() - start,
-        timedOut
-      });
-    });
-    child.on("close", (exitCode) => {
-      clearTimeout(timer);
-      resolveResult({
-        exitCode,
-        status: !timedOut && exitCode === 0 ? "passed" : "failed",
-        error: timedOut ? "timed out" : null,
-        stdout,
-        stderr,
-        durationMs: Date.now() - start,
-        timedOut
-      });
-    });
-  });
-}
-
 export async function probeAdapter(adapter, options = {}) {
   const cwd = options.cwd ?? process.cwd();
-  const env = collectEnv(adapter, options.env ?? process.env);
+  const env = collectAllowedEnv(adapter, options.env ?? process.env);
   const commandResolution = await resolveCommand(adapter.command, cwd, env);
   const checks = [];
 

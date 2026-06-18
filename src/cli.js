@@ -4,6 +4,7 @@ import { runAdapterProbeCommand } from "./adapter-probe-command.js";
 import { runInitCommand } from "./init-command.js";
 import { listSchemas, loadSchema } from "./schema-registry.js";
 import { validateJson } from "./schema-validator.js";
+import { runWorkflowStartCommand } from "./workflow-start-command.js";
 
 const args = process.argv.slice(2);
 
@@ -14,6 +15,7 @@ Usage:
   forge --help
   forge init [--template <id>] [--project-name <name>] [--yes] [--force]
   forge adapter probe <adapter-id> [--json]
+  forge workflow start <workflow-id> --input <text> [--yes]
   forge schema list
   forge schema validate <schema-id> <json-file>
 
@@ -44,6 +46,11 @@ async function main() {
 
   if (args[0] === "adapter" && args[1] === "probe") {
     await runAdapterProbeCommand(args.slice(2));
+    return;
+  }
+
+  if (args[0] === "workflow" && args[1] === "start") {
+    await runWorkflowStartCommand(args.slice(2));
     return;
   }
 

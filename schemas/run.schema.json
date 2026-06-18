@@ -3,7 +3,20 @@
   "$id": "forgekit.run.v1",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "run_id", "workflow_id", "status", "role_sessions"],
+  "required": [
+    "schema_version",
+    "run_id",
+    "workflow_id",
+    "status",
+    "created_at",
+    "updated_at",
+    "started_at",
+    "completed_at",
+    "duration_ms",
+    "task",
+    "role_sessions",
+    "steps"
+  ],
   "properties": {
     "schema_version": {
       "type": "string",
@@ -20,6 +33,33 @@
     "status": {
       "type": "string",
       "enum": ["pending", "running", "completed", "failed"]
+    },
+    "created_at": {
+      "type": "string"
+    },
+    "updated_at": {
+      "type": "string"
+    },
+    "started_at": {
+      "type": "string"
+    },
+    "completed_at": {
+      "type": "string"
+    },
+    "duration_ms": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "task": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["input"],
+      "properties": {
+        "input": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
     },
     "role_sessions": {
       "type": "object",
@@ -54,7 +94,99 @@
           }
         }
       }
+    },
+    "steps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["index", "step_id", "role_id", "adapter_id", "status", "active_attempt", "attempts"],
+        "properties": {
+          "index": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "step_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "role_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "adapter_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["pending", "starting_session", "running", "validating", "self_correcting", "completed", "failed", "skipped"]
+          },
+          "active_attempt": {
+            "type": "string"
+          },
+          "attempts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "attempt_id",
+                "status",
+                "started_at",
+                "completed_at",
+                "duration_ms",
+                "prompt_ref",
+                "stdout_ref",
+                "stderr_ref",
+                "exit_code",
+                "external_session_id",
+                "error"
+              ],
+              "properties": {
+                "attempt_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "status": {
+                  "type": "string",
+                  "enum": ["pending", "starting_session", "running", "validating", "self_correcting", "completed", "failed", "skipped"]
+                },
+                "started_at": {
+                  "type": "string"
+                },
+                "completed_at": {
+                  "type": "string"
+                },
+                "duration_ms": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "prompt_ref": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "stdout_ref": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "stderr_ref": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "exit_code": {
+                  "type": "integer"
+                },
+                "external_session_id": {
+                  "type": "string"
+                },
+                "error": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   }
 }
-
