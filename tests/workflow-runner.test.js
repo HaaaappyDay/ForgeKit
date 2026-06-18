@@ -131,6 +131,27 @@ exit 0
       "utf8"
     );
     assert.match(output, /Output for clarify-requirement/);
+
+    const repoSummary = await readJsonFile(join(dir, ".forgekit/runs", run.run_id, "context/repo-summary.json"));
+    assert.equal(repoSummary.schema_version, "repo-summary.v1");
+    assert.ok(Array.isArray(repoSummary.tree));
+
+    const workflowSummary = await readJsonFile(
+      join(dir, ".forgekit/runs", run.run_id, "context/workflow-summary.json")
+    );
+    assert.equal(workflowSummary.schema_version, "workflow-summary.v1");
+    assert.equal(workflowSummary.revision, 4);
+    assert.equal(workflowSummary.updated_after_step, "test-plan");
+    assert.equal(workflowSummary.next_step_hint, "");
+    assert.deepEqual(
+      workflowSummary.completed_steps.map((step) => step.step_id),
+      ["clarify-requirement", "technical-design", "implementation-plan", "test-plan"]
+    );
+
+    const finalSummary = await readFile(join(dir, ".forgekit/runs", run.run_id, "summary.md"), "utf8");
+    assert.match(finalSummary, /# ForgeKit Run Summary/);
+    assert.match(finalSummary, /Add passwordless login/);
+    assert.match(finalSummary, /Output for test-plan/);
   });
 });
 

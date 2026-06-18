@@ -2,10 +2,12 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { executeAdapterStep, resumeStrategyFor } from "./adapters/execute.js";
 import { buildCorrectionPrompt } from "./correction-prompt.js";
+import { writeFinalSummary } from "./final-summary.js";
 import { parseHandoffFromRaw } from "./handoff-parser.js";
 import { normalizeHandoffArtifacts, validateHandoffContent } from "./handoff-validator.js";
 import { buildStepPrompt } from "./prompt-builder.js";
 import { loadAdapterConfig, loadRoleConfig, loadWorkflowConfig } from "./project-config.js";
+import { collectRepoContext } from "./repo-context.js";
 import {
   attemptRoot,
   createInitialRun,
@@ -16,6 +18,7 @@ import {
   writeRun
 } from "./run-store.js";
 import { schemaPath, schemaText } from "./schema-registry.js";
+import { createWorkflowSummary, updateWorkflowSummary, writeWorkflowSummary } from "./workflow-summary.js";
 
 function isoNow() {
   return new Date().toISOString();
@@ -100,6 +103,10 @@ export async function runWorkflow({ workflowId, taskInput, projectRoot = process
   const startedAtMs = Date.now();
 
   await ensureRunDirectories(projectRoot, run);
+  const repoSummary = await collectRepoContext(projectRoot);
+  await writeFile(join(projectRoot, ".forgekit/runs", run.run_id, "context/repo-summary.json"), `${JSON.stringify(repoSummary, null, 2)}\n`, "utf8");
+  let workflowSummary = createWorkflowSummary(run, workflow);
+  await writeWorkflowSummary(projectRoot, workflowSummary);
   run.status = "running";
   await writeRun(projectRoot, run);
 
@@ -121,7 +128,7 @@ export async function runWorkflow({ workflowId, taskInput, projectRoot = process
     const existingSession = run.role_sessions[role.id]?.external_session_id ?? null;
     const attemptIndex = 0;
     const startedAt = isoNow();
-    const prompt = buildStepPrompt({ run, workflow, step, role, previousStep });
+    const prompt = buildStepPrompt({ run, workflow, step, role, previousStep, repoSummary, workflowSummary });
     const promptRef = relativeAttemptPath(index, step.id, attemptIndex, "prompt.md");
     const rawRef = relativeAttemptPath(index, step.id, attemptIndex, "raw.log");
     const errorRef = relativeAttemptPath(index, step.id, attemptIndex, "error.log");
@@ -174,6 +181,7 @@ export async function runWorkflow({ workflowId, taskInput, projectRoot = process
 
     let status = completedStatusFromExit(result.exitCode, result.externalSessionId);
     let finalResult = result;
+    let completedHandoff = null;
     let validationRecord = {
       valid: false,
       correction_attempted: false,
@@ -202,6 +210,7 @@ export async function runWorkflow({ workflowId, taskInput, projectRoot = process
       };
 
       if (initialValidation.valid) {
+        completedHandoff = initialValidation.handoff;
         await writeHandoffFiles(projectRoot, run, index, step.id, attemptIndex, initialValidation.handoff);
       } else {
         stepTrace.status = "self_correcting";
@@ -263,6 +272,7 @@ export async function runWorkflow({ workflowId, taskInput, projectRoot = process
           };
           validationRecord.correction_succeeded = correctionValidation.valid;
           if (correctionValidation.valid) {
+            completedHandoff = correctionValidation.handoff;
             await writeHandoffFiles(projectRoot, run, index, step.id, attemptIndex, correctionValidation.handoff);
           }
         } else {
@@ -304,6 +314,16 @@ export async function runWorkflow({ workflowId, taskInput, projectRoot = process
     attempt.error = failureMessage(status, finalResult);
     stepTrace.status = status;
 
+    if (status === "completed" && completedHandoff) {
+      workflowSummary = await updateWorkflowSummary(projectRoot, {
+        run,
+        workflow,
+        stepIndex: index,
+        handoff: completedHandoff,
+        handoffRef
+      });
+    }
+
     if (finalResult.externalSessionId) {
       upsertRoleSession(run, {
         roleId: role.id,
@@ -327,6 +347,7 @@ export async function runWorkflow({ workflowId, taskInput, projectRoot = process
     run.status = "completed";
   }
   await writeRun(projectRoot, run);
+  await writeFinalSummary(projectRoot, run);
 
   return run;
 }
