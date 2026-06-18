@@ -20,6 +20,7 @@ function codexArgs(sessionId, outputSchemaPath) {
     return [
       "exec",
       "resume",
+      "--skip-git-repo-check",
       "--json",
       ...(outputSchemaPath ? ["--output-schema", outputSchemaPath] : []),
       sessionId,
@@ -28,6 +29,7 @@ function codexArgs(sessionId, outputSchemaPath) {
   }
   return [
     "exec",
+    "--skip-git-repo-check",
     "--json",
     ...(outputSchemaPath ? ["--output-schema", outputSchemaPath] : []),
     "-s",
