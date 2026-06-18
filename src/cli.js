@@ -1,7 +1,10 @@
 #!/usr/bin/env node
 import { readFile } from "node:fs/promises";
 import { runAdapterProbeCommand } from "./adapter-probe-command.js";
+import { runHistoryCommand } from "./history-command.js";
 import { runInitCommand } from "./init-command.js";
+import { runRoleCommand } from "./role-command.js";
+import { runRunCommand } from "./run-command.js";
 import { listSchemas, loadSchema } from "./schema-registry.js";
 import { validateJson } from "./schema-validator.js";
 import { runWorkflowStartCommand } from "./workflow-start-command.js";
@@ -16,11 +19,13 @@ Usage:
   forge init [--template <id>] [--project-name <name>] [--yes] [--force]
   forge adapter probe <adapter-id> [--json]
   forge workflow start <workflow-id> --input <text> [--yes]
+  forge history
+  forge run show <run-id> [--json]
+  forge run retry <run-id>
+  forge role path <role-id>
   forge schema list
   forge schema validate <schema-id> <json-file>
-
-MVP-0 commands such as init, workflow start, adapter probe, history, and run show
-will be implemented in later phases.`);
+`);
 }
 
 function fail(message, code = 1) {
@@ -51,6 +56,21 @@ async function main() {
 
   if (args[0] === "workflow" && args[1] === "start") {
     await runWorkflowStartCommand(args.slice(2));
+    return;
+  }
+
+  if (args[0] === "history") {
+    await runHistoryCommand(args.slice(1));
+    return;
+  }
+
+  if (args[0] === "run") {
+    await runRunCommand(args.slice(1));
+    return;
+  }
+
+  if (args[0] === "role") {
+    await runRoleCommand(args.slice(1));
     return;
   }
 

@@ -27,7 +27,7 @@ export function attemptDirName(attemptIndex) {
   return `attempt-${String(attemptIndex + 1).padStart(2, "0")}`;
 }
 
-export function createInitialRun({ runId, workflow, taskInput }) {
+export function createInitialRun({ runId, workflow, taskInput, budgets }) {
   const now = isoNow();
   return {
     schema_version: "forgekit.run.v1",
@@ -43,6 +43,17 @@ export function createInitialRun({ runId, workflow, taskInput }) {
       input: taskInput
     },
     role_sessions: {},
+    budget: {
+      max_invocations: budgets.max_invocations,
+      max_retries_per_step: budgets.max_retries_per_step,
+      max_duration_minutes: budgets.max_duration_minutes,
+      max_output_bytes: budgets.max_output_bytes,
+      invocations: 0,
+      retries: 0,
+      input_chars: 0,
+      output_bytes: 0,
+      exceeded: []
+    },
     steps: workflow.steps.map((step, index) => ({
       index: index + 1,
       step_id: step.id,
@@ -53,6 +64,26 @@ export function createInitialRun({ runId, workflow, taskInput }) {
       attempts: []
     }))
   };
+}
+
+export function recordAdapterCall(run, { prompt, stdout, stderr, isRetry }) {
+  run.budget.invocations += 1;
+  run.budget.input_chars += prompt.length;
+  run.budget.output_bytes += Buffer.byteLength(stdout ?? "", "utf8") + Buffer.byteLength(stderr ?? "", "utf8");
+  if (isRetry) {
+    run.budget.retries += 1;
+  }
+
+  const exceeded = new Set(run.budget.exceeded);
+  if (run.budget.invocations > run.budget.max_invocations) exceeded.add("max_invocations");
+  if (run.budget.output_bytes > run.budget.max_output_bytes) exceeded.add("max_output_bytes");
+  run.budget.exceeded = [...exceeded].sort();
+}
+
+export function markBudgetExceeded(run, key) {
+  const exceeded = new Set(run.budget.exceeded);
+  exceeded.add(key);
+  run.budget.exceeded = [...exceeded].sort();
 }
 
 export function runRoot(projectRoot, runId) {

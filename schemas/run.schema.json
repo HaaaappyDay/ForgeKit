@@ -15,7 +15,8 @@
     "duration_ms",
     "task",
     "role_sessions",
-    "steps"
+    "steps",
+    "budget"
   ],
   "properties": {
     "schema_version": {
@@ -202,6 +203,61 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "budget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "max_invocations",
+        "max_retries_per_step",
+        "max_duration_minutes",
+        "max_output_bytes",
+        "invocations",
+        "retries",
+        "input_chars",
+        "output_bytes",
+        "exceeded"
+      ],
+      "properties": {
+        "max_invocations": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_retries_per_step": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "max_duration_minutes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_output_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "invocations": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "retries": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "input_chars": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "output_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "exceeded": {
+          "type": "array",
+          "items": {
+            "type": "string"
           }
         }
       }

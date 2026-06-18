@@ -21,6 +21,17 @@
       "status": "active"
     }
   },
+  "budget": {
+    "max_invocations": 8,
+    "max_retries_per_step": 1,
+    "max_duration_minutes": 30,
+    "max_output_bytes": 200000,
+    "invocations": 1,
+    "retries": 0,
+    "input_chars": 1024,
+    "output_bytes": 2048,
+    "exceeded": []
+  },
   "steps": [
     {
       "index": 1,
