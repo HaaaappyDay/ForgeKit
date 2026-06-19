@@ -3,7 +3,11 @@
 .forgekit/tmp/
 .forgekit/secrets*
 docs/specs/*.draft.md
+.agents/
+skills-lock.json
 node_modules/
 coverage/
+dist/
+.tmp/
 .env
 .env.*

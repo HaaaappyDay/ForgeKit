@@ -49,14 +49,14 @@ This acceptance pass verifies the MVP-0 goal: a ForgeKit workflow run can orches
 
 `npm test` passed after the acceptance fix:
 
-- `tests/adapter-execute.test.js`
-- `tests/adapter-probe.test.js`
-- `tests/handoff.test.js`
-- `tests/init.test.js`
-- `tests/run-commands.test.js`
-- `tests/run-plan.test.js`
-- `tests/schema.test.js`
-- `tests/workflow-runner.test.js`
+- `tests/adapter-execute.test.ts`
+- `tests/adapter-probe.test.ts`
+- `tests/handoff.test.ts`
+- `tests/init.test.ts`
+- `tests/run-commands.test.ts`
+- `tests/run-plan.test.ts`
+- `tests/schema.test.ts`
+- `tests/workflow-runner.test.ts`
 
 ## Remaining Non-Blocking Follow-Ups
 

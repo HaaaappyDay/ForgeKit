@@ -2,20 +2,22 @@
 
 ## Project Structure & Module Organization
 
-`src/` contains the ForgeKit CLI and domain modules. `src/cli.js` is the `forge` entry point; command handlers use `*-command.js`, shared helpers are plain modules, and adapter code lives in `src/adapters/`. `schemas/` holds versioned JSON schemas. `tests/` contains Node test runner suites, with reusable JSON examples in `tests/fixtures/valid/` and `tests/fixtures/invalid/`. `docs/` and `spikes/` hold design notes, acceptance notes, and experiments. There is no separate asset directory today.
+`src/` contains the ForgeKit CLI and domain modules. `src/cli.ts` is the `forge` source entry point and compiles to `dist/cli.js`; command handlers use `*-command.ts`, shared helpers are plain modules, and adapter code lives in `src/adapters/`. `schemas/` holds versioned JSON schemas. `tests/` contains Node test runner suites, with reusable JSON examples in `tests/fixtures/valid/` and `tests/fixtures/invalid/`. `docs/` and `spikes/` hold design notes, acceptance notes, and experiments. There is no separate asset directory today.
 
 ## Build, Test, and Development Commands
 
-- `npm test`: run the full suite with `node --test`.
+- `npm test`: compile test output, then run the full suite with `node --test`.
 - `npm run schema:list`: print registered schema IDs and backing files.
-- `node src/cli.js --help`: inspect local CLI commands.
-- `node src/cli.js schema validate forgekit.workflow.v1 tests/fixtures/valid/workflow-feature-planning.json`: validate JSON against a registered schema.
+- `npm run build`: compile production TypeScript to `dist/`.
+- `npm run typecheck`: type-check source and tests without emitting files.
+- `npm run build && node dist/cli.js --help`: inspect local CLI commands.
+- `npm run build && node dist/cli.js schema validate forgekit.workflow.v1 tests/fixtures/valid/workflow-feature-planning.json`: validate JSON against a registered schema.
 
-The project targets Node.js `>=20` and currently has no build step or runtime dependencies.
+The project targets Node.js `>=20` and currently has no runtime dependencies.
 
 ## Coding Style & Naming Conventions
 
-Use native ES modules with `import`/`export`; import Node built-ins through `node:` specifiers. Match the existing style: 2-space indentation, double quotes, semicolons, and concise helper functions. Use `camelCase` for functions and variables. Keep filenames lowercase and hyphenated, such as `workflow-start-command.js`; test files should end in `.test.js`.
+Use native ES modules with `import`/`export`; import Node built-ins through `node:` specifiers. TypeScript source should keep `.js` import specifiers so emitted Node ESM resolves correctly. Match the existing style: 2-space indentation, double quotes, semicolons, and concise helper functions. Use `camelCase` for functions and variables. Keep filenames lowercase and hyphenated, such as `workflow-start-command.ts`; test files should end in `.test.ts`.
 
 ## Testing Guidelines
 

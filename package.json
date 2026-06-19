@@ -4,14 +4,20 @@
   "private": true,
   "type": "module",
   "bin": {
-    "forge": "./src/cli.js"
+    "forge": "./dist/cli.js"
   },
   "scripts": {
-    "test": "node --test",
-    "schema:list": "node src/cli.js schema list"
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.test.json --noEmit",
+    "test:build": "tsc -p tsconfig.test.json",
+    "test": "npm run test:build && node --test .tmp/ts-tests/tests/*.test.js",
+    "schema:list": "npm run build && node dist/cli.js schema list"
   },
   "engines": {
     "node": ">=20"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.0",
+    "typescript": "^5.8.0"
   }
 }
-
