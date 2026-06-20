@@ -114,6 +114,7 @@ export async function executeAdapterStep(
       stderr: "",
       durationMs: 0,
       error: `Command not found or not executable: ${adapter.command}`,
+      timedOut: false,
       externalSessionId: null
     };
   }
@@ -142,6 +143,7 @@ export async function executeAdapterStep(
     stderr: result.stderr,
     durationMs: result.durationMs,
     error: result.error,
+    timedOut: result.timedOut,
     externalSessionId
   };
 }

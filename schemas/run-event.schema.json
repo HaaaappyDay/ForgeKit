@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "forgekit.run-event.v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "event_id",
+    "run_id",
+    "timestamp",
+    "type",
+    "message",
+    "data"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "forgekit.run-event.v1"
+    },
+    "event_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "timestamp": {
+      "type": "string",
+      "minLength": 1
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "run_created",
+        "run_started",
+        "repo_context_collected",
+        "workflow_summary_updated",
+        "step_started",
+        "attempt_started",
+        "adapter_invocation_started",
+        "adapter_invocation_completed",
+        "validation_started",
+        "validation_completed",
+        "self_correction_started",
+        "artifact_written",
+        "step_completed",
+        "step_failed",
+        "step_skipped",
+        "budget_exceeded",
+        "run_completed",
+        "run_failed"
+      ]
+    },
+    "step_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "role_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "adapter_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "attempt_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "message": {
+      "type": "string",
+      "minLength": 1
+    },
+    "data": {
+      "type": "object"
+    }
+  }
+}

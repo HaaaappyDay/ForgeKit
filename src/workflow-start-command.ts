@@ -1,19 +1,23 @@
 import { readFile } from "node:fs/promises";
 import { createInterface } from "node:readline/promises";
-import { buildRunPlan, formatRunPlan } from "./run-plan.js";
-import { runWorkflow } from "./workflow-runner.js";
+import { buildWorkflowRunPlan, startWorkflowRun } from "./core.js";
+import { formatRunPlan } from "./run-plan.js";
 
 interface WorkflowStartOptions {
   workflowId?: string;
   input?: string;
   inputFile?: string;
   yes: boolean;
+  json: boolean;
+  planJson: boolean;
   help: boolean;
 }
 
 function parseStartArgs(args: string[]): WorkflowStartOptions {
   const options: WorkflowStartOptions = {
     yes: false,
+    json: false,
+    planJson: false,
     help: false
   };
 
@@ -27,6 +31,10 @@ function parseStartArgs(args: string[]): WorkflowStartOptions {
       index += 1;
     } else if (arg === "--yes" || arg === "-y") {
       options.yes = true;
+    } else if (arg === "--json") {
+      options.json = true;
+    } else if (arg === "--plan-json") {
+      options.planJson = true;
     } else if (arg === "--help" || arg === "-h") {
       options.help = true;
     } else if (!options.workflowId) {
@@ -43,6 +51,8 @@ function printHelp(): void {
   console.log(`Usage:
   forge workflow start <workflow-id> --input <text> [--yes]
   forge workflow start <workflow-id> --input-file <path> [--yes]
+  forge workflow start <workflow-id> --input <text> --plan-json
+  forge workflow start <workflow-id> --input <text> --yes --json
 
 Shows the run plan, records run trace, validates handoff JSON, writes output.md,
 and self-corrects once when validation fails.`);
@@ -85,27 +95,49 @@ export async function runWorkflowStartCommand(args: string[], cwd = process.cwd(
   }
 
   const taskInput = await readTaskInput(options);
-  const plan = await buildRunPlan({
+  const plan = await buildWorkflowRunPlan({
     workflowId: options.workflowId,
     taskInput,
     projectRoot: cwd
   });
-  console.log(formatRunPlan(plan).trimEnd());
+
+  if (options.planJson) {
+    console.log(JSON.stringify(plan, null, 2));
+    return;
+  }
+
+  if (options.json && !options.yes) {
+    throw new Error("Use --yes with --json for workflow start.");
+  }
+
+  if (!options.json) {
+    console.log(formatRunPlan(plan).trimEnd());
+  }
 
   if (!options.yes && !(await confirmRun())) {
     console.log("Run cancelled.");
     return;
   }
 
-  const run = await runWorkflow({
+  const run = await startWorkflowRun({
     workflowId: options.workflowId,
     taskInput,
-    projectRoot: cwd
+    projectRoot: cwd,
+    writeEventsJsonl: true
   });
 
-  console.log(`Run: ${run.run_id}`);
-  console.log(`Status: ${run.status}`);
-  console.log(`Trace: .forgekit/runs/${run.run_id}/run.json`);
+  if (options.json) {
+    console.log(JSON.stringify({
+      plan,
+      run,
+      events_ref: `.forgekit/runs/${run.run_id}/events.jsonl`
+    }, null, 2));
+  } else {
+    console.log(`Run: ${run.run_id}`);
+    console.log(`Status: ${run.status}`);
+    console.log(`Trace: .forgekit/runs/${run.run_id}/run.json`);
+    console.log(`Events: .forgekit/runs/${run.run_id}/events.jsonl`);
+  }
   if (run.status !== "completed") {
     process.exitCode = 1;
   }

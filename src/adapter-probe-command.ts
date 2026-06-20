@@ -1,5 +1,4 @@
-import { loadAdapterConfig } from "./project-config.js";
-import { probeAdapter } from "./adapters/probe.js";
+import { getAdapter, probeAdapter } from "./core.js";
 import type { AdapterProbeResult } from "./types.js";
 
 interface ProbeCommandOptions {
@@ -83,13 +82,13 @@ export async function runAdapterProbeCommand(args: string[], cwd = process.cwd()
     throw new Error("Usage: forge adapter probe <adapter-id> [--json]");
   }
 
-  const { adapter, path } = await loadAdapterConfig(options.adapterId, cwd);
-  const result = await probeAdapter(adapter, { cwd });
+  const detail = await getAdapter(options.adapterId, cwd);
+  const result = await probeAdapter(options.adapterId, cwd);
 
   if (options.json) {
     console.log(JSON.stringify(result, null, 2));
   } else {
-    printTextResult(result, path);
+    printTextResult(result, detail.path);
   }
 
   if (!result.ok) {

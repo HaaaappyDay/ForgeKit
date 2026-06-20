@@ -200,6 +200,9 @@
                 },
                 "error": {
                   "type": "string"
+                },
+                "error_code": {
+                  "type": "string"
                 }
               }
             }

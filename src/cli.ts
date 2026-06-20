@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 import { readFile } from "node:fs/promises";
 import { runAdapterProbeCommand } from "./adapter-probe-command.js";
+import { runAdapterDiscoveryCommand, runWorkflowDiscoveryCommand } from "./discovery-command.js";
+import { errorResponse } from "./errors.js";
 import { runHistoryCommand } from "./history-command.js";
 import { runInitCommand } from "./init-command.js";
 import { runRoleCommand } from "./role-command.js";
@@ -18,10 +20,16 @@ Usage:
   forge --help
   forge init [--template <id>] [--project-name <name>] [--yes] [--force]
   forge adapter probe <adapter-id> [--json]
+  forge adapter list [--json]
+  forge adapter show <adapter-id> [--json]
   forge workflow start <workflow-id> --input <text> [--yes]
-  forge history
+  forge workflow list [--json]
+  forge workflow show <workflow-id> [--json]
+  forge history [--json]
   forge run show <run-id> [--json]
-  forge run retry <run-id>
+  forge run retry <run-id> [--json]
+  forge role list [--json]
+  forge role show <role-id> [--json]
   forge role path <role-id>
   forge schema list
   forge schema validate <schema-id> <json-file>
@@ -31,6 +39,19 @@ Usage:
 function fail(message: string, code = 1): void {
   console.error(message);
   process.exitCode = code;
+}
+
+function wantsJsonOutput(): boolean {
+  return args.includes("--json") || args.includes("--plan-json");
+}
+
+function failError(error: unknown): void {
+  if (wantsJsonOutput()) {
+    console.error(JSON.stringify(errorResponse(error), null, 2));
+  } else {
+    console.error(error instanceof Error ? error.message : String(error));
+  }
+  process.exitCode = 1;
 }
 
 async function readJson(path: string): Promise<unknown> {
@@ -54,8 +75,18 @@ async function main(): Promise<void> {
     return;
   }
 
+  if (args[0] === "adapter") {
+    await runAdapterDiscoveryCommand(args.slice(1));
+    return;
+  }
+
   if (args[0] === "workflow" && args[1] === "start") {
     await runWorkflowStartCommand(args.slice(2));
+    return;
+  }
+
+  if (args[0] === "workflow") {
+    await runWorkflowDiscoveryCommand(args.slice(1));
     return;
   }
 
@@ -117,5 +148,5 @@ async function main(): Promise<void> {
 }
 
 main().catch((error) => {
-  fail(error instanceof Error ? error.message : String(error));
+  failError(error);
 });

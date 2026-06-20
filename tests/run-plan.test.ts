@@ -163,3 +163,40 @@ test("workflow start prints the run plan before executing with --yes", async () 
     assert.match(output, /Status: completed/);
   });
 });
+
+test("workflow start supports plan-json and run json output", async () => {
+  await withTempProject(async (dir) => {
+    await runInitCommand(["--template", "generic-plan-review", "--yes"], dir);
+
+    const planJson = await captureConsole(() => runWorkflowStartCommand([
+      "generic-plan-review",
+      "--input",
+      "Plan a launch checklist",
+      "--plan-json"
+    ], dir));
+    const parsedPlan = JSON.parse(planJson) as { workflow_id: string; steps: unknown[] };
+    assert.equal(parsedPlan.workflow_id, "generic-plan-review");
+    assert.equal(parsedPlan.steps.length, 3);
+
+    const fakeAdapter = join(dir, "json-agent");
+    await writeExecutable(fakeAdapter, successfulAdapterScript());
+    await patchAdapterCommand(dir, "codex.json", fakeAdapter);
+    await patchAdapterCommand(dir, "claude-code.json", fakeAdapter);
+
+    const runJson = await captureConsole(() => runWorkflowStartCommand([
+      "generic-plan-review",
+      "--input",
+      "Plan a launch checklist",
+      "--yes",
+      "--json"
+    ], dir));
+    const parsedRun = JSON.parse(runJson) as {
+      plan: { workflow_id: string };
+      run: { status: string };
+      events_ref: string;
+    };
+    assert.equal(parsedRun.plan.workflow_id, "generic-plan-review");
+    assert.equal(parsedRun.run.status, "completed");
+    assert.match(parsedRun.events_ref, /events\.jsonl$/);
+  });
+});

@@ -26,6 +26,7 @@ export type SchemaId =
   | "forgekit.adapter.v1"
   | "forgekit.config.v1"
   | "forgekit.role.v1"
+  | "forgekit.run-event.v1"
   | "forgekit.run.v1"
   | "forgekit.workflow.v1"
   | "handoff.v1"
@@ -194,6 +195,7 @@ export interface RunAttempt {
   external_session_id: string;
   correction_count: number;
   error: string;
+  error_code?: string;
 }
 
 export interface RunStep {
@@ -314,6 +316,7 @@ export interface AdapterExecutionResult {
   stderr: string;
   durationMs: number;
   error: string | null;
+  timedOut: boolean;
   externalSessionId: string | null;
 }
 
@@ -391,6 +394,62 @@ export interface RunPlan {
   warnings: string[];
 }
 
+export interface RunArtifact {
+  ref: string;
+  type: string;
+  exists: boolean;
+  size: number | null;
+  step_id?: string;
+  attempt_id?: string;
+}
+
+export interface RunArtifactContent {
+  ref: string;
+  content: string;
+  size: number;
+}
+
+export interface ConfigDiscoveryValidation {
+  valid: boolean;
+  errors: string[];
+}
+
+export interface WorkflowDiscoveryEntry {
+  id: string;
+  name: string;
+  version: string;
+  step_count: number;
+  path: string;
+  validation: ConfigDiscoveryValidation;
+}
+
+export interface RoleDiscoveryEntry {
+  id: string;
+  name: string;
+  adapter_id: string;
+  write_policy: string;
+  path: string;
+  validation: ConfigDiscoveryValidation;
+}
+
+export interface AdapterDiscoveryEntry {
+  id: string;
+  type: string;
+  command: string;
+  auth: string;
+  billing: string;
+  write_policy: string;
+  path: string;
+  validation: ConfigDiscoveryValidation;
+}
+
+export interface ConfigDetail<T> {
+  id: string;
+  path: string;
+  config: T | null;
+  validation: ConfigDiscoveryValidation;
+}
+
 export interface AdapterProbeCheck {
   name: string;
   status: "passed" | "failed";
@@ -415,4 +474,38 @@ export interface AdapterProbeResult {
   billing?: AdapterConfig["billing"];
   write_policy?: AdapterConfig["write_policy"];
   notes?: string[];
+}
+
+export type RunEventType =
+  | "run_created"
+  | "run_started"
+  | "repo_context_collected"
+  | "workflow_summary_updated"
+  | "step_started"
+  | "attempt_started"
+  | "adapter_invocation_started"
+  | "adapter_invocation_completed"
+  | "validation_started"
+  | "validation_completed"
+  | "self_correction_started"
+  | "artifact_written"
+  | "step_completed"
+  | "step_failed"
+  | "step_skipped"
+  | "budget_exceeded"
+  | "run_completed"
+  | "run_failed";
+
+export interface RunEvent {
+  schema_version: "forgekit.run-event.v1";
+  event_id: string;
+  run_id: string;
+  timestamp: string;
+  type: RunEventType;
+  message: string;
+  data: JsonObject;
+  step_id?: string;
+  role_id?: string;
+  adapter_id?: string;
+  attempt_id?: string;
 }

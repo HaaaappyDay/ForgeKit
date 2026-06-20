@@ -1,0 +1,11 @@
+{
+  "schema_version": "forgekit.run-event.v1",
+  "event_id": "000001",
+  "run_id": "20260619T000000Z-feature-planning",
+  "timestamp": "2026-06-19T00:00:00.000Z",
+  "type": "step_started",
+  "step_id": "technical-design",
+  "attempt_id": "attempt-01",
+  "message": "Step started",
+  "data": {}
+}

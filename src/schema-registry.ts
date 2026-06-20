@@ -22,6 +22,7 @@ const schemaEntries = [
   ["forgekit.adapter.v1", "schemas/adapter.schema.json"],
   ["forgekit.config.v1", "schemas/config.schema.json"],
   ["forgekit.role.v1", "schemas/role.schema.json"],
+  ["forgekit.run-event.v1", "schemas/run-event.schema.json"],
   ["forgekit.run.v1", "schemas/run.schema.json"],
   ["forgekit.workflow.v1", "schemas/workflow.schema.json"],
   ["handoff.v1", "schemas/handoff.schema.json"],

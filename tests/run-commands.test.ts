@@ -137,6 +137,10 @@ test("history, run show, and role path report local run metadata", async () => {
     const historyOutput = await captureConsole(() => runHistoryCommand([], dir));
     assert.match(historyOutput, new RegExp(`${run.run_id}\\s+completed\\s+generic-plan-review`));
 
+    const historyJson = await captureConsole(() => runHistoryCommand(["--json"], dir));
+    const historyParsed = JSON.parse(historyJson) as Run[];
+    assert.equal(historyParsed[0].run_id, run.run_id);
+
     const showOutput = await captureConsole(() => runRunCommand(["show", run.run_id], dir));
     assert.match(showOutput, new RegExp(`Run: ${run.run_id}`));
     assert.match(showOutput, /Status: completed/);
@@ -185,8 +189,10 @@ test("run retry appends a new attempt and keeps prior artifacts", async () => {
     const originalErrorLog = await readFile(failedErrorPath, "utf8");
     assert.match(originalErrorLog, /first plan attempt failed/);
 
-    const retryOutput = await captureConsole(() => runRunCommand(["retry", failedRun.run_id], dir));
-    assert.match(retryOutput, /Status: completed/);
+    const retryOutput = await captureConsole(() => runRunCommand(["retry", failedRun.run_id, "--json"], dir));
+    const retryParsed = JSON.parse(retryOutput) as { run: Run; events_ref: string };
+    assert.equal(retryParsed.run.status, "completed");
+    assert.match(retryParsed.events_ref, /events\.jsonl$/);
 
     const retriedRun = await readJsonFile<Run>(join(dir, ".forgekit/runs", failedRun.run_id, "run.json"));
     assert.equal(retriedRun.status, "completed");
@@ -216,5 +222,6 @@ test("run retry appends a new attempt and keeps prior artifacts", async () => {
     assert.ok(retriedRun.budget.output_bytes > 0);
     assert.ok(retriedRun.budget.input_chars > 0);
     assert.deepEqual(retriedRun.budget.exceeded, ["max_invocations"]);
+
   });
 });

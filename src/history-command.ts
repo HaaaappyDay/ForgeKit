@@ -27,7 +27,12 @@ export async function loadRunHistory(projectRoot = process.cwd()): Promise<Run[]
 }
 
 export async function runHistoryCommand(_args: string[], cwd = process.cwd()): Promise<void> {
+  const json = _args.includes("--json");
   const runs = await loadRunHistory(cwd);
+  if (json) {
+    console.log(JSON.stringify(runs, null, 2));
+    return;
+  }
   if (runs.length === 0) {
     console.log("No ForgeKit runs found.");
     return;

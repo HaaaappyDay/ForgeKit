@@ -1,5 +1,4 @@
-import { readRun } from "./run-store.js";
-import { retryWorkflow } from "./workflow-runner.js";
+import { getRunSnapshot, retryRun } from "./core.js";
 import type { Run } from "./types.js";
 
 interface RunCommandOptions {
@@ -21,7 +20,7 @@ function parseRunArgs(args: string[]): RunCommandOptions {
 function printHelp(): void {
   console.log(`Usage:
   forge run show <run-id> [--json]
-  forge run retry <run-id>`);
+  forge run retry <run-id> [--json]`);
 }
 
 function printRun(run: Run): void {
@@ -62,7 +61,7 @@ export async function runRunCommand(args: string[], cwd = process.cwd()): Promis
   }
 
   if (options.subcommand === "show") {
-    const run = await readRun(cwd, options.runId);
+    const run = await getRunSnapshot(options.runId, cwd);
     if (options.json) {
       console.log(JSON.stringify(run, null, 2));
     } else {
@@ -72,10 +71,18 @@ export async function runRunCommand(args: string[], cwd = process.cwd()): Promis
   }
 
   if (options.subcommand === "retry") {
-    const run = await retryWorkflow({ runId: options.runId, projectRoot: cwd });
-    console.log(`Run: ${run.run_id}`);
-    console.log(`Status: ${run.status}`);
-    console.log(`Trace: .forgekit/runs/${run.run_id}/run.json`);
+    const run = await retryRun({ runId: options.runId, projectRoot: cwd, writeEventsJsonl: true });
+    if (options.json) {
+      console.log(JSON.stringify({
+        run,
+        events_ref: `.forgekit/runs/${run.run_id}/events.jsonl`
+      }, null, 2));
+    } else {
+      console.log(`Run: ${run.run_id}`);
+      console.log(`Status: ${run.status}`);
+      console.log(`Trace: .forgekit/runs/${run.run_id}/run.json`);
+      console.log(`Events: .forgekit/runs/${run.run_id}/events.jsonl`);
+    }
     if (run.status !== "completed") {
       process.exitCode = 1;
     }

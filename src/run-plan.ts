@@ -1,4 +1,5 @@
 import { loadAdapterConfig, loadProjectConfig, loadRoleConfig, loadWorkflowConfig } from "./project-config.js";
+import { ForgeKitError } from "./errors.js";
 import type { AdapterConfig, RunPlan, RunPlanAdapter, RunPlanStep, WorkflowConfig } from "./types.js";
 
 function unique<T>(values: T[]): T[] {
@@ -14,31 +15,41 @@ function expectedNextFor(workflow: WorkflowConfig, index: number): string | null
 }
 
 export function validateLinearWorkflow(workflow: WorkflowConfig): void {
+  function fail(message: string): never {
+    throw new ForgeKitError({
+      code: "workflow_invalid",
+      message,
+      category: "workflow",
+      retryable: false,
+      details: { workflow_id: workflow.id }
+    });
+  }
+
   if (workflow.steps.length === 0) {
-    throw new Error("MVP-0 supports only linear workflows: workflow must contain at least one step.");
+    fail("MVP-0 supports only linear workflows: workflow must contain at least one step.");
   }
 
   const stepIds = workflow.steps.map((step) => step.id);
   if (new Set(stepIds).size !== stepIds.length) {
-    throw new Error("MVP-0 supports only linear workflows: step ids must be unique.");
+    fail("MVP-0 supports only linear workflows: step ids must be unique.");
   }
   if (workflow.entrypoint !== workflow.steps[0].id) {
-    throw new Error("MVP-0 supports only linear workflows: entrypoint must be the first step id.");
+    fail("MVP-0 supports only linear workflows: entrypoint must be the first step id.");
   }
 
   for (let index = 0; index < workflow.steps.length; index += 1) {
     const step = workflow.steps[index];
     const next = step.next ?? [];
     if (next.length > 1) {
-      throw new Error(`MVP-0 supports only linear workflows: step ${step.id} has multiple next steps.`);
+      fail(`MVP-0 supports only linear workflows: step ${step.id} has multiple next steps.`);
     }
 
     const expectedNext = expectedNextFor(workflow, index);
     if (!expectedNext && next.length > 0) {
-      throw new Error(`MVP-0 supports only linear workflows: final step ${step.id} must not point to another step.`);
+      fail(`MVP-0 supports only linear workflows: final step ${step.id} must not point to another step.`);
     }
     if (next.length === 1 && next[0] !== expectedNext) {
-      throw new Error(`MVP-0 supports only linear workflows: step ${step.id} must point to ${expectedNext}.`);
+      fail(`MVP-0 supports only linear workflows: step ${step.id} must point to ${expectedNext}.`);
     }
   }
 }

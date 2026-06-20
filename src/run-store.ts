@@ -1,5 +1,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
+import { ForgeKitError } from "./errors.js";
+import { isNodeErrorCode } from "./node-error.js";
 import { loadSchema } from "./schema-registry.js";
 import { validateJson } from "./schema-validator.js";
 import type { BudgetExceededKey, ResumeStrategy, Run, WorkflowConfig } from "./types.js";
@@ -150,7 +152,21 @@ export async function writeRun(projectRoot: string, run: Run): Promise<void> {
 }
 
 export async function readRun(projectRoot: string, runId: string): Promise<Run> {
-  return JSON.parse(await readFile(runJsonPath(projectRoot, runId), "utf8")) as Run;
+  const path = runJsonPath(projectRoot, runId);
+  try {
+    return JSON.parse(await readFile(path, "utf8")) as Run;
+  } catch (error) {
+    if (isNodeErrorCode(error, "ENOENT")) {
+      throw new ForgeKitError({
+        code: "run_not_found",
+        message: `Run not found: ${runId}`,
+        category: "run",
+        retryable: false,
+        details: { run_id: runId, path }
+      });
+    }
+    throw error;
+  }
 }
 
 export async function writeTextArtifact(

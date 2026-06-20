@@ -9,6 +9,7 @@ const validFixtures: Record<SchemaId, string> = {
   "forgekit.adapter.v1": "tests/fixtures/valid/adapter-codex.json",
   "forgekit.config.v1": "tests/fixtures/valid/config.json",
   "forgekit.role.v1": "tests/fixtures/valid/role-planner.json",
+  "forgekit.run-event.v1": "tests/fixtures/valid/run-event.json",
   "forgekit.run.v1": "tests/fixtures/valid/run.json",
   "forgekit.workflow.v1": "tests/fixtures/valid/workflow-feature-planning.json",
   "handoff.v1": "tests/fixtures/valid/handoff.json",
