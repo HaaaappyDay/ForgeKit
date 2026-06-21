@@ -9,6 +9,7 @@ import { runRoleCommand } from "./role-command.js";
 import { runRunCommand } from "./run-command.js";
 import { isSchemaId, listSchemas, loadSchema } from "./schema-registry.js";
 import { validateJson } from "./schema-validator.js";
+import { runTuiCommand } from "./tui-command.js";
 import { runWorkflowStartCommand } from "./workflow-start-command.js";
 
 const args = process.argv.slice(2);
@@ -31,6 +32,7 @@ Usage:
   forge role list [--json]
   forge role show <role-id> [--json]
   forge role path <role-id>
+  forge tui <run-id>
   forge schema list
   forge schema validate <schema-id> <json-file>
 `);
@@ -102,6 +104,11 @@ async function main(): Promise<void> {
 
   if (args[0] === "role") {
     await runRoleCommand(args.slice(1));
+    return;
+  }
+
+  if (args[0] === "tui") {
+    await runTuiCommand(args.slice(1));
     return;
   }
 

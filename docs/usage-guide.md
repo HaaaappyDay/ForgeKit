@@ -172,10 +172,11 @@ forge run show <run-id> --json
 
 ## 5. 内置模板
 
-`forge init` 支持三个模板：
+`forge init` 支持四个模板：
 
 ```bash
 forge init --template feature-planning --yes
+forge init --template feature-planning-agentic --yes
 forge init --template generic-plan-review --yes
 forge init --template blank --yes
 ```
@@ -192,6 +193,35 @@ forge init --template blank --yes
 - `architect`：给出技术设计和集成风险。
 - `engineer`：把设计转成实施计划。
 - `qa`：给出测试策略、边界情况和验收风险。
+
+### feature-planning-agentic
+
+与 `feature-planning` 同样的四个角色（`pm`、`architect`、`engineer`、`qa`），但使用 **agentic 模式**（`forgekit.workflow.v2`）。区别在于交接不再固定线性向前，而是运行时由当前角色在候选集内选择下一棒，并且每次交接都带验收标准、由接收方先验收再开工。
+
+默认 workflow：`feature-planning-agentic`
+
+要点：
+
+- `qa` 是一个「混合角色」：它既是终点（可输出 `final` 结束 run），也保留交接目标（不满意时退回 `pm` 返工）。
+- 交接被拒绝时会受控退回上一棒发送方，发送方复用会话返工后再前进。
+- 反复返工触顶 `max_role_visits` / `max_steps` 预算时，run 会进入 `escalated` 状态，并在 `escalation` 里记录原因与最新产物。
+
+agentic 模式的简要说明见下面的「Agentic 模式简述」。
+
+### Agentic 模式简述
+
+ForgeKit 支持两种 workflow：
+
+- **线性（`forgekit.workflow.v1`，`mode: workflow_run`）**：步骤顺序固定，逐步向前，已通过 MVP-0 验收。
+- **Agentic（`forgekit.workflow.v2`，`mode: agentic_run`）**：运行时按图遍历，由角色动态决定下一棒，带验收门和受控回退。
+
+两种模式并存，`forge workflow start` 会根据 workflow 文件的 `schema_version` 自动分派，无需额外参数。agentic run 的产物存为 `forgekit.run.v2`（以 `nodes[]` + `edges[]` 表示），可通过 `forge run show` / `forge history` / `forge run retry` 查看与重跑（仅 `failed` 可重跑，`escalated` 不可重跑）。
+
+启动方式与线性一致：
+
+```bash
+forge workflow start feature-planning-agentic --input "为设置页设计一个导出配置功能" --yes
+```
 
 ### generic-plan-review
 
@@ -293,7 +323,7 @@ forge --help
 初始化 `.forgekit/`。
 
 ```bash
-forge init [--template <blank|generic-plan-review|feature-planning>] [--project-name <name>] [--yes] [--force]
+forge init [--template <blank|generic-plan-review|feature-planning|feature-planning-agentic>] [--project-name <name>] [--yes] [--force]
 ```
 
 常用参数：
@@ -379,6 +409,49 @@ forge run retry <run-id>
 
 只能重试状态为 `failed` 的 run。ForgeKit 会从第一个失败步骤开始继续执行，并把之前 skipped 的后续步骤恢复为 pending。历史 attempt 不会被覆盖，新 attempt 会追加到对应步骤目录里。
 
+### `forge tui`
+
+只读的实时终端监控器，挂载到一个已存在的 run 上，查看步骤进度并浏览产物。
+
+```bash
+forge tui <run-id>
+```
+
+要点：
+
+- run 由 `forge workflow start` 启动并写入 `events.jsonl`；`forge tui` 是独立进程，tail `events.jsonl` 做实时更新，并以 `run.json` 为权威状态。
+- 进行中和已完成的 run 都能看：进行中会实时刷新；已完成（或没有 `events.jsonl` 的旧 run）作为事后查看器，直接基于 `run.json` 渲染。
+- 当前版本只支持线性 run（`forgekit.run.v1`）。传入 agentic run（`forgekit.run.v2`）会提示暂不支持并以非零码退出。
+- 需要交互式终端（TTY）。非 TTY 环境会直接报错退出。
+
+典型用法是开两个终端，一个跑、一个看：
+
+```bash
+# 终端 A：启动 run
+forge workflow start feature-planning --input-file task.md --yes
+
+# 终端 B：用上面输出的 run-id 挂载监控器
+forge tui <run-id>
+```
+
+键位：
+
+```text
+↑ / ↓      在步骤列表中移动选择 / 在产物阅读器中滚动
+Enter      打开选中步骤的产物
+← / →      在该步骤的多个产物间切换
+g / G      跳到产物顶部 / 底部
+Esc        从产物阅读器返回步骤列表
+q          退出（Ctrl-C 同样会干净地复原终端）
+```
+
+界面包含两个视图：
+
+- **监控视图**：run 头部（run-id、workflow、状态、时长）、步骤列表（状态与当前 attempt）、预算行（invocations/retries/output bytes 与上限，超限项会标出）、最近事件流。
+- **产物阅读器**：可滚动阅读文本产物（`output.md`、`handoff.json`、`validation.json`、`prompt.md`）。`raw.log`、`error.log` 这类可能很大的日志只读取尾部若干行。
+
+监控器是纯只读的：它只通过 ForgeKit 的只读接口读取 `run.json`、`events.jsonl` 和产物文件，不会修改 run 状态或项目文件。
+
 ### `forge role path`
 
 输出 role 定义文件路径。
@@ -407,10 +480,15 @@ forge schema list
 forgekit.adapter.v1          schemas/adapter.schema.json
 forgekit.config.v1           schemas/config.schema.json
 forgekit.role.v1             schemas/role.schema.json
+forgekit.run-event.v1        schemas/run-event.schema.json
 forgekit.run.v1              schemas/run.schema.json
 forgekit.workflow.v1         schemas/workflow.schema.json
 handoff.v1                   schemas/handoff.schema.json
 workflow-summary.v1          schemas/workflow-summary.schema.json
+forgekit.workflow.v2         schemas/workflow.v2.schema.json
+handoff.v2                   schemas/handoff.v2.schema.json
+acceptance-verdict.v1        schemas/acceptance-verdict.schema.json
+forgekit.run.v2              schemas/run.v2.schema.json
 ```
 
 ### `forge schema validate`
@@ -585,6 +663,7 @@ forge init --template feature-planning --yes --force
 blank
 generic-plan-review
 feature-planning
+feature-planning-agentic
 ```
 
 ### `Unknown adapter id`
@@ -651,6 +730,12 @@ forge schema validate forgekit.config.v1 .forgekit/config.json
 forge workflow start feature-planning --input-file task.md --yes
 forge history
 forge run show <run-id>
+```
+
+如果想实时观察运行过程，可以另开一个终端，用 `forge workflow start` 输出的 run-id 挂载监控器：
+
+```bash
+forge tui <run-id>
 ```
 
 如果某个 adapter 不可用，先调整 `.forgekit/adapters/*.json` 的 `command`，再重新 probe。真实运行前尽量先 probe，因为 workflow 失败后虽然可以 retry，但外部 CLI 的登录、路径、权限问题最好提前处理。
