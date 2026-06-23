@@ -94,7 +94,7 @@ test("probeAdapter passes basic checks for a codex-shaped command", async () => 
         ["startup", "passed"]
       ]
     );
-    assert.match(result.checks[1].stdout, /fake-codex/);
+    assert.match(result.checks[1].stdout ?? "", /fake-codex/);
   });
 });
 

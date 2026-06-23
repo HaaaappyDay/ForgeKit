@@ -30,7 +30,11 @@ export type SchemaId =
   | "forgekit.run.v1"
   | "forgekit.workflow.v1"
   | "handoff.v1"
-  | "workflow-summary.v1";
+  | "workflow-summary.v1"
+  | "forgekit.workflow.v2"
+  | "handoff.v2"
+  | "acceptance-verdict.v1"
+  | "forgekit.run.v2";
 
 export interface ValidationResult {
   valid: boolean;
@@ -101,6 +105,8 @@ export interface ProjectConfig {
     max_retries_per_step: number;
     max_duration_minutes: number;
     max_output_bytes: number;
+    max_steps?: number;
+    max_role_visits?: number;
     token_budget?: string;
   };
 }
@@ -154,7 +160,27 @@ export interface WorkflowConfig {
   conflict_policy?: Record<string, unknown>;
 }
 
-export type RunStatus = "pending" | "running" | "completed" | "failed";
+export interface AgenticRoleNode {
+  objective?: string;
+  handoff_targets?: string[];
+}
+
+export interface AgenticWorkflowConfig {
+  schema_version: "forgekit.workflow.v2";
+  id: string;
+  name: string;
+  version: string;
+  mode: "agentic_run";
+  entrypoint: string;
+  repo_context: string;
+  roles: Record<string, AgenticRoleNode>;
+  terminal_roles: string[];
+  conflict_policy?: Record<string, unknown>;
+}
+
+export type AnyWorkflowConfig = WorkflowConfig | AgenticWorkflowConfig;
+
+export type RunStatus = "pending" | "running" | "completed" | "failed" | "escalated";
 export type StepStatus =
   | "pending"
   | "starting_session"
@@ -168,7 +194,9 @@ export type BudgetExceededKey =
   | "max_invocations"
   | "max_retries_per_step"
   | "max_duration_minutes"
-  | "max_output_bytes";
+  | "max_output_bytes"
+  | "max_steps"
+  | "max_role_visits";
 
 export interface RoleSession {
   role_id: string;
@@ -270,6 +298,155 @@ export interface Handoff {
 
 export type HandoffCandidate = Partial<Handoff> & Record<string, unknown>;
 
+export type NextHandoff =
+  | {
+      kind: "handoff";
+      recommended_role: string;
+      instructions: string;
+      acceptance_criteria: string[];
+    }
+  | { kind: "final" };
+
+export interface HandoffV2 {
+  schema_version: "handoff.v2";
+  run_id: string;
+  step_id: string;
+  role_id: string;
+  status: string;
+  summary: string;
+  decisions: HandoffDecision[];
+  assumptions: string[];
+  risks: string[];
+  open_questions: string[];
+  out_of_scope: string[];
+  markdown_body: string;
+  next_handoff: NextHandoff;
+  artifacts: HandoffArtifact[];
+}
+
+export type HandoffV2Candidate = Partial<Omit<HandoffV2, "next_handoff">> & {
+  next_handoff?: unknown;
+} & Record<string, unknown>;
+
+export interface AcceptanceCriterionResult {
+  criterion: string;
+  met: boolean;
+  reason: string;
+}
+
+export interface AcceptanceVerdict {
+  schema_version: "acceptance-verdict.v1";
+  run_id: string;
+  node_id: string;
+  role_id: string;
+  incoming_handoff_ref: string;
+  verdict: "accept" | "reject";
+  criteria_results: AcceptanceCriterionResult[];
+  notes?: string;
+}
+
+export type AcceptanceVerdictCandidate = Partial<AcceptanceVerdict> & Record<string, unknown>;
+
+export type NodeEntryReason = "entrypoint" | "handoff" | "rework";
+
+export type NodeStatus =
+  | "pending"
+  | "running"
+  | "verifying"
+  | "working"
+  | "self_correcting"
+  | "completed"
+  | "failed"
+  | "rejected_upstream"
+  | "escalated";
+
+export type AttemptPhase = "verification" | "work";
+
+export interface RunNodeAttempt extends RunAttempt {
+  phase: AttemptPhase;
+}
+
+export interface RunNodeAcceptance {
+  incoming_handoff_ref: string;
+  verdict: "accept" | "reject";
+  verdict_ref: string;
+  unmet: string[];
+}
+
+export interface RunNode {
+  node_seq: number;
+  node_id: string;
+  role_id: string;
+  adapter_id: string;
+  entry_reason: NodeEntryReason;
+  entered_from: string | null;
+  objective: string;
+  status: NodeStatus;
+  acceptance: RunNodeAcceptance | null;
+  attempts: RunNodeAttempt[];
+  handoff_ref: string;
+  chosen_next_role: string | null;
+}
+
+export interface RunEdge {
+  from: string;
+  to: string;
+  type: "handoff" | "rework";
+  reason?: string[];
+}
+
+export interface AgenticBudget {
+  max_invocations: number;
+  max_retries_per_step: number;
+  max_duration_minutes: number;
+  max_output_bytes: number;
+  max_steps: number;
+  max_role_visits: number;
+  invocations: number;
+  retries: number;
+  steps: number;
+  role_visits: Record<string, number>;
+  input_chars: number;
+  output_bytes: number;
+  exceeded: BudgetExceededKey[];
+}
+
+export interface ActiveCursor {
+  role_id: string;
+  node_id: string;
+  phase: "verification" | "work" | "idle";
+}
+
+export interface RunEscalation {
+  reason: BudgetExceededKey | string;
+  at_node_id: string;
+  latest_artifacts: string[];
+}
+
+export interface AgenticRun {
+  schema_version: "forgekit.run.v2";
+  run_id: string;
+  workflow_id: string;
+  run_mode: "agentic";
+  status: RunStatus;
+  created_at: string;
+  updated_at: string;
+  started_at: string;
+  completed_at: string;
+  duration_ms: number;
+  task: {
+    input: string;
+  };
+  active_cursor: ActiveCursor | null;
+  nodes: RunNode[];
+  edges: RunEdge[];
+  role_sessions: Record<string, RoleSession>;
+  budget: AgenticBudget;
+  escalation: RunEscalation | null;
+}
+
+export type AnyRun = Run | AgenticRun;
+
 export interface WorkflowSummaryCompletedStep {
   step_id: string;
   role_id: string;
@@ -339,14 +516,14 @@ export interface RepoSummary {
   };
 }
 
-export type TemplateId = "blank" | "generic-plan-review" | "feature-planning";
+export type TemplateId = "blank" | "generic-plan-review" | "feature-planning" | "feature-planning-agentic";
 
 export interface Template {
   config: ProjectConfig;
   roles: Record<string, RoleConfig>;
-  workflows: Record<string, WorkflowConfig>;
+  workflows: Record<string, AnyWorkflowConfig>;
   adapters: Record<string, AdapterConfig>;
-  examples: Record<string, RoleConfig | WorkflowConfig>;
+  examples: Record<string, RoleConfig | AnyWorkflowConfig>;
 }
 
 export interface RunPlanStep {
@@ -394,12 +571,54 @@ export interface RunPlan {
   warnings: string[];
 }
 
+export type CandidateSource = "workflow" | "role_must_handoff_to" | "none";
+
+export interface AgenticRunPlanRole {
+  role_id: string;
+  role_name: string;
+  adapter_id: string;
+  adapter_type: AdapterType;
+  role_write_policy: WritePolicyMode;
+  objective: string;
+  is_entrypoint: boolean;
+  is_terminal: boolean;
+  candidates: string[];
+  candidate_source: CandidateSource;
+}
+
+export interface AgenticRunPlan {
+  workflow_id: string;
+  workflow_name: string;
+  run_mode: "agentic";
+  task_input: string;
+  entrypoint: string;
+  terminal_roles: string[];
+  roles: AgenticRunPlanRole[];
+  adapters: RunPlanAdapter[];
+  context: {
+    repo: string;
+    sharing: string;
+    mode: string;
+  };
+  budgets: {
+    max_invocations: number;
+    max_retries_per_step: number;
+    max_duration_minutes: number;
+    max_output_bytes: number;
+    max_steps: number;
+    max_role_visits: number;
+    token_budget: string;
+  };
+  warnings: string[];
+}
+
 export interface RunArtifact {
   ref: string;
   type: string;
   exists: boolean;
   size: number | null;
   step_id?: string;
+  node_id?: string;
   attempt_id?: string;
 }
 
@@ -494,7 +713,15 @@ export type RunEventType =
   | "step_skipped"
   | "budget_exceeded"
   | "run_completed"
-  | "run_failed";
+  | "run_failed"
+  | "node_entered"
+  | "route_candidates_resolved"
+  | "acceptance_verification_started"
+  | "acceptance_verification_completed"
+  | "handoff_rejected"
+  | "rework_routed"
+  | "route_selected"
+  | "run_escalated";
 
 export interface RunEvent {
   schema_version: "forgekit.run-event.v1";
@@ -508,4 +735,5 @@ export interface RunEvent {
   role_id?: string;
   adapter_id?: string;
   attempt_id?: string;
+  node_id?: string;
 }

@@ -1,8 +1,8 @@
 import { readdir } from "node:fs/promises";
 import { join } from "node:path";
 import { isNodeErrorCode } from "./node-error.js";
-import { readRun } from "./run-store.js";
-import type { Run } from "./types.js";
+import { readAnyRun } from "./run-store.js";
+import type { AgenticRun, Run } from "./types.js";
 
 async function listRunIds(projectRoot: string): Promise<string[]> {
   try {
@@ -14,11 +14,11 @@ async function listRunIds(projectRoot: string): Promise<string[]> {
   }
 }
 
-export async function loadRunHistory(projectRoot = process.cwd()): Promise<Run[]> {
-  const runs: Run[] = [];
+export async function loadRunHistory(projectRoot = process.cwd()): Promise<Array<Run | AgenticRun>> {
+  const runs: Array<Run | AgenticRun> = [];
   for (const runId of await listRunIds(projectRoot)) {
     try {
-      runs.push(await readRun(projectRoot, runId));
+      runs.push(await readAnyRun(projectRoot, runId));
     } catch {
       // Ignore incomplete or manually corrupted run directories in the list view.
     }

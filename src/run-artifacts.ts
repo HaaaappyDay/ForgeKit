@@ -2,13 +2,14 @@ import { readFile, stat } from "node:fs/promises";
 import { dirname, resolve, sep } from "node:path";
 import { ForgeKitError } from "./errors.js";
 import { isNodeErrorCode } from "./node-error.js";
-import { readRun, runRoot } from "./run-store.js";
-import type { RunArtifact, RunArtifactContent } from "./types.js";
+import { isAgenticRun, readAnyRun, runRoot } from "./run-store.js";
+import type { AgenticRun, RunArtifact, RunArtifactContent } from "./types.js";
 
 interface ArtifactCandidate {
   ref: string;
   type: string;
   step_id?: string;
+  node_id?: string;
   attempt_id?: string;
   optional?: boolean;
 }
@@ -17,7 +18,7 @@ function uniqueCandidates(candidates: ArtifactCandidate[]): ArtifactCandidate[] 
   const seen = new Set<string>();
   const unique: ArtifactCandidate[] = [];
   for (const candidate of candidates) {
-    const key = `${candidate.ref}:${candidate.step_id ?? ""}:${candidate.attempt_id ?? ""}`;
+    const key = `${candidate.ref}:${candidate.step_id ?? ""}:${candidate.node_id ?? ""}:${candidate.attempt_id ?? ""}`;
     if (seen.has(key)) continue;
     seen.add(key);
     unique.push(candidate);
@@ -64,6 +65,7 @@ async function artifactFromCandidate(
       exists: true,
       size: file.size,
       ...(candidate.step_id ? { step_id: candidate.step_id } : {}),
+      ...(candidate.node_id ? { node_id: candidate.node_id } : {}),
       ...(candidate.attempt_id ? { attempt_id: candidate.attempt_id } : {})
     };
   } catch (error) {
@@ -75,26 +77,17 @@ async function artifactFromCandidate(
       exists: false,
       size: null,
       ...(candidate.step_id ? { step_id: candidate.step_id } : {}),
+      ...(candidate.node_id ? { node_id: candidate.node_id } : {}),
       ...(candidate.attempt_id ? { attempt_id: candidate.attempt_id } : {})
     };
   }
 }
 
-export async function listRunArtifacts(runId: string, projectRoot = process.cwd()): Promise<RunArtifact[]> {
-  const run = await readRun(projectRoot, runId);
-  const candidates: ArtifactCandidate[] = [
-    { ref: "summary.md", type: "summary" },
-    { ref: "context/repo-summary.json", type: "repo_context" },
-    { ref: "context/workflow-summary.json", type: "workflow_summary" },
-    { ref: "events.jsonl", type: "run_events", optional: true }
-  ];
-
-  for (const step of run.steps) {
-    for (const attempt of step.attempts) {
-      const context = {
-        step_id: step.step_id,
-        attempt_id: attempt.attempt_id
-      };
+function agenticArtifactCandidates(run: AgenticRun): ArtifactCandidate[] {
+  const candidates: ArtifactCandidate[] = [];
+  for (const node of run.nodes) {
+    for (const attempt of node.attempts) {
+      const context = { node_id: node.node_id, attempt_id: attempt.attempt_id };
       candidates.push(
         { ref: attempt.prompt_ref, type: "prompt", ...context },
         { ref: attempt.stdout_ref, type: "stdout", ...context },
@@ -110,6 +103,48 @@ export async function listRunArtifacts(runId: string, projectRoot = process.cwd(
         { ref: `${attemptDir}/correction-raw.log`, type: "correction_stdout", optional: true, ...context },
         { ref: `${attemptDir}/correction-error.log`, type: "correction_stderr", optional: true, ...context }
       );
+      if (attempt.phase === "verification") {
+        candidates.push({ ref: `${attemptDir}/verdict.json`, type: "acceptance_verdict", optional: true, ...context });
+      }
+    }
+  }
+  return candidates;
+}
+
+export async function listRunArtifacts(runId: string, projectRoot = process.cwd()): Promise<RunArtifact[]> {
+  const run = await readAnyRun(projectRoot, runId);
+  const candidates: ArtifactCandidate[] = [
+    { ref: "summary.md", type: "summary" },
+    { ref: "context/repo-summary.json", type: "repo_context" },
+    { ref: "context/workflow-summary.json", type: "workflow_summary", optional: isAgenticRun(run) },
+    { ref: "events.jsonl", type: "run_events", optional: true }
+  ];
+
+  if (isAgenticRun(run)) {
+    candidates.push(...agenticArtifactCandidates(run));
+  } else {
+    for (const step of run.steps) {
+      for (const attempt of step.attempts) {
+        const context = {
+          step_id: step.step_id,
+          attempt_id: attempt.attempt_id
+        };
+        candidates.push(
+          { ref: attempt.prompt_ref, type: "prompt", ...context },
+          { ref: attempt.stdout_ref, type: "stdout", ...context },
+          { ref: attempt.stderr_ref, type: "stderr", ...context },
+          { ref: attempt.validation_ref, type: "validation", ...context }
+        );
+        if (attempt.handoff_ref) candidates.push({ ref: attempt.handoff_ref, type: "handoff", ...context });
+        if (attempt.markdown_ref) candidates.push({ ref: attempt.markdown_ref, type: "markdown", ...context });
+
+        const attemptDir = dirname(attempt.prompt_ref);
+        candidates.push(
+          { ref: `${attemptDir}/correction-prompt.md`, type: "correction_prompt", optional: true, ...context },
+          { ref: `${attemptDir}/correction-raw.log`, type: "correction_stdout", optional: true, ...context },
+          { ref: `${attemptDir}/correction-error.log`, type: "correction_stderr", optional: true, ...context }
+        );
+      }
     }
   }
 

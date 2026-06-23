@@ -26,7 +26,11 @@ const schemaEntries = [
   ["forgekit.run.v1", "schemas/run.schema.json"],
   ["forgekit.workflow.v1", "schemas/workflow.schema.json"],
   ["handoff.v1", "schemas/handoff.schema.json"],
-  ["workflow-summary.v1", "schemas/workflow-summary.schema.json"]
+  ["workflow-summary.v1", "schemas/workflow-summary.schema.json"],
+  ["forgekit.workflow.v2", "schemas/workflow.v2.schema.json"],
+  ["handoff.v2", "schemas/handoff.v2.schema.json"],
+  ["acceptance-verdict.v1", "schemas/acceptance-verdict.schema.json"],
+  ["forgekit.run.v2", "schemas/run.v2.schema.json"]
 ] as const satisfies ReadonlyArray<readonly [SchemaId, string]>;
 
 const schemas = new Map<SchemaId, { id: SchemaId; file: string; absolutePath: string }>(

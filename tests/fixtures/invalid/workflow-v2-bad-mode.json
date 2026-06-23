@@ -1,0 +1,18 @@
+{
+  "schema_version": "forgekit.workflow.v2",
+  "id": "feature-planning-agentic",
+  "name": "Feature Planning (Agentic)",
+  "version": "0.1",
+  "mode": "workflow_run",
+  "entrypoint": "pm",
+  "repo_context": "standard",
+  "roles": {
+    "pm": {
+      "handoff_targets": ["reviewer"]
+    },
+    "reviewer": {
+      "handoff_targets": []
+    }
+  },
+  "terminal_roles": ["reviewer"]
+}

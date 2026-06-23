@@ -1,6 +1,19 @@
-import type { AdapterConfig, ProjectConfig, RoleConfig, Template, TemplateId, WorkflowConfig } from "./types.js";
+import type {
+  AdapterConfig,
+  AgenticWorkflowConfig,
+  ProjectConfig,
+  RoleConfig,
+  Template,
+  TemplateId,
+  WorkflowConfig
+} from "./types.js";
 
-export const TEMPLATE_IDS = ["blank", "generic-plan-review", "feature-planning"] as const satisfies readonly TemplateId[];
+export const TEMPLATE_IDS = [
+  "blank",
+  "generic-plan-review",
+  "feature-planning",
+  "feature-planning-agentic"
+] as const satisfies readonly TemplateId[];
 
 type NonEmptyArray<T> = [T, ...T[]];
 
@@ -11,8 +24,7 @@ interface TemplateWorkflowStep {
   constraints?: Record<string, unknown>;
 }
 
-const CODEX_COMMAND =
-  "/home/lotus/.nvm/versions/node/v24.15.0/lib/node_modules/@openai/codex/node_modules/@openai/codex-linux-arm64/vendor/aarch64-unknown-linux-musl/bin/codex";
+const CODEX_COMMAND = "codex";
 
 function adapter(id: string, type: AdapterConfig["type"], command: string): AdapterConfig {
   return {
@@ -120,7 +132,12 @@ function workflow(id: string, name: string, steps: NonEmptyArray<TemplateWorkflo
   };
 }
 
-function config(projectName: string, defaultWorkflow: string, roleAdapters: Record<string, string>): ProjectConfig {
+function config(
+  projectName: string,
+  defaultWorkflow: string,
+  roleAdapters: Record<string, string>,
+  agenticBudgets?: { max_invocations: number; max_steps: number; max_role_visits: number }
+): ProjectConfig {
   return {
     schema_version: "forgekit.config.v1",
     project: {
@@ -149,7 +166,41 @@ function config(projectName: string, defaultWorkflow: string, roleAdapters: Reco
       max_retries_per_step: 1,
       max_duration_minutes: 30,
       max_output_bytes: 200000,
+      ...(agenticBudgets ?? {}),
       token_budget: "[TBD]"
+    }
+  };
+}
+
+interface AgenticRoleSpec {
+  objective: string;
+  handoff_targets: string[];
+}
+
+function agenticWorkflow(
+  id: string,
+  name: string,
+  entrypoint: string,
+  roles: Record<string, AgenticRoleSpec>,
+  terminalRoles: NonEmptyArray<string>
+): AgenticWorkflowConfig {
+  return {
+    schema_version: "forgekit.workflow.v2",
+    id,
+    name,
+    version: "0.1",
+    mode: "agentic_run",
+    entrypoint,
+    repo_context: "standard",
+    roles,
+    terminal_roles: terminalRoles,
+    conflict_policy: {
+      default: "merge_role_decides",
+      require_human_when: [
+        "security_or_privacy_risk",
+        "data_loss_or_destructive_action",
+        "large_scope_change"
+      ]
     }
   };
 }
@@ -305,6 +356,90 @@ function featurePlanning(projectName: string): Template {
   };
 }
 
+function featurePlanningAgentic(projectName: string): Template {
+  const baseCannot = ["Modify project files", "Perform irreversible external actions"];
+  const roles = {
+    "pm.json": role(
+      "pm",
+      "Product Manager",
+      "Clarifies user value, scope, constraints, and acceptance criteria.",
+      ["Clarify requirements", "Define acceptance criteria", "Identify product risks"],
+      ["Write user stories", "Separate MVP from follow-up work"],
+      ["Write code", "Decide technical architecture"],
+      "architect"
+    ),
+    "architect.json": role(
+      "architect",
+      "Architect",
+      "Creates technical design and integration guidance without editing files.",
+      ["Design system boundaries", "Identify integration risks", "Recommend architecture"],
+      ["Produce technical design", "Prepare implementation handoff"],
+      ["Modify files", "Override product requirements"],
+      "engineer"
+    ),
+    "engineer.json": role(
+      "engineer",
+      "Engineer",
+      "Turns approved design into an implementation plan without changing files.",
+      ["Plan implementation steps", "Identify code areas", "Call out rollback considerations"],
+      ["Produce implementation plan", "Estimate sequencing"],
+      baseCannot,
+      "qa"
+    ),
+    "qa.json": role(
+      "qa",
+      "QA Engineer",
+      "Verifies deliverables, produces a test strategy, and can finalize or send work back.",
+      ["Verify acceptance criteria", "Define test plan", "Decide whether to finalize"],
+      ["Produce test plan", "Finalize the run", "Hand back to PM for rework"],
+      ["Modify implementation", "Approve product scope changes"],
+      "pm"
+    )
+  };
+
+  return {
+    // A mixed terminal role (qa) keeps a handoff target (pm) so it can either finalize
+    // or route rework upstream — exercises the agentic mixed-role path (spec §5).
+    config: config(
+      projectName,
+      "feature-planning-agentic",
+      {
+        pm: "codex-local",
+        architect: "claude-code",
+        engineer: "codex-local",
+        qa: "codex-local"
+      },
+      { max_invocations: 24, max_steps: 24, max_role_visits: 3 }
+    ),
+    roles,
+    workflows: {
+      "feature-planning-agentic.json": agenticWorkflow(
+        "feature-planning-agentic",
+        "Feature Planning (Agentic)",
+        "pm",
+        {
+          pm: { objective: "Clarify user need, MVP scope, and acceptance criteria.", handoff_targets: ["architect"] },
+          architect: {
+            objective: "Produce technical design and integration guidance.",
+            handoff_targets: ["engineer"]
+          },
+          engineer: {
+            objective: "Turn the design into an implementation plan.",
+            handoff_targets: ["qa"]
+          },
+          qa: {
+            objective: "Verify acceptance criteria, then finalize or hand back to PM.",
+            handoff_targets: ["pm"]
+          }
+        },
+        ["qa"]
+      )
+    },
+    adapters: commonAdapters(),
+    examples: {}
+  };
+}
+
 function blank(projectName: string): Template {
   const exampleRole = role(
     "example-role",
@@ -342,5 +477,6 @@ export function buildTemplate(templateId: TemplateId, projectName: string): Temp
   if (templateId === "blank") return blank(projectName);
   if (templateId === "generic-plan-review") return genericPlanReview(projectName);
   if (templateId === "feature-planning") return featurePlanning(projectName);
+  if (templateId === "feature-planning-agentic") return featurePlanningAgentic(projectName);
   throw new Error(`Unknown template: ${templateId}`);
 }

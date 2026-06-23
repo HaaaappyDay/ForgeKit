@@ -18,6 +18,7 @@ export interface EmitRunEventOptions {
   role_id?: string;
   adapter_id?: string;
   attempt_id?: string;
+  node_id?: string;
 }
 
 export interface RunEventEmitterOptions {
@@ -95,6 +96,7 @@ export class RunEventEmitter {
     if (options.role_id) event.role_id = options.role_id;
     if (options.adapter_id) event.adapter_id = options.adapter_id;
     if (options.attempt_id) event.attempt_id = options.attempt_id;
+    if (options.node_id) event.node_id = options.node_id;
 
     for (const observer of this.observers) {
       await observer(event);

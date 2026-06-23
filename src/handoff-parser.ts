@@ -1,7 +1,12 @@
-import type { HandoffCandidate } from "./types.js";
+import type { HandoffCandidate, HandoffV2Candidate } from "./types.js";
 
 interface HandoffParseResult {
   handoff: HandoffCandidate | null;
+  errors: string[];
+}
+
+interface HandoffV2ParseResult {
+  handoff: HandoffV2Candidate | null;
   errors: string[];
 }
 
@@ -83,13 +88,51 @@ function parseObjectFromText(text: string): Record<string, unknown> | null {
   return balanced ? parseJsonMaybe(balanced) : null;
 }
 
-function handoffFromParsed(value: Record<string, unknown> | null): HandoffCandidate | null {
-  if (value?.schema_version === "handoff.v1") {
-    return value as HandoffCandidate;
+function pickMatch(
+  value: Record<string, unknown> | null,
+  matches: (candidate: Record<string, unknown>) => boolean
+): Record<string, unknown> | null {
+  if (!value) return null;
+  if (matches(value)) return value;
+  for (const nested of Object.values(value)) {
+    if (isRecord(nested) && matches(nested)) {
+      return nested;
+    }
   }
-  if (isRecord(value?.handoff) && value.handoff.schema_version === "handoff.v1") {
-    return value.handoff as HandoffCandidate;
+  return null;
+}
+
+/**
+ * Runs the full extraction pipeline (direct JSON, fenced JSON, balanced object,
+ * and per-line adapter events) and returns the first object satisfying `matches`,
+ * optionally unwrapped from a single level of nesting (e.g. {"handoff": {...}}).
+ */
+export function findTaggedObject(
+  raw: string,
+  matches: (candidate: Record<string, unknown>) => boolean
+): Record<string, unknown> | null {
+  const direct = pickMatch(parseObjectFromText(raw), matches);
+  if (direct) return direct;
+
+  const candidates: string[] = [];
+  for (const line of raw.split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    const event = parseJsonMaybe(trimmed);
+    if (event) {
+      const matchedEvent = pickMatch(event, matches);
+      if (matchedEvent) return matchedEvent;
+      candidates.push(...candidateTextsFromJsonEvent(event));
+    } else {
+      candidates.push(trimmed);
+    }
   }
+
+  for (const candidate of candidates) {
+    const matched = pickMatch(parseObjectFromText(candidate), matches);
+    if (matched) return matched;
+  }
+
   return null;
 }
 
@@ -117,34 +160,23 @@ function candidateTextsFromJsonEvent(event: Record<string, unknown>): string[] {
 }
 
 export function parseHandoffFromRaw(raw: string): HandoffParseResult {
-  const full = parseObjectFromText(raw);
-  const fullHandoff = handoffFromParsed(full);
-  if (fullHandoff) {
-    return { handoff: fullHandoff, errors: [] };
+  const handoff = findTaggedObject(raw, (value) => value.schema_version === "handoff.v1");
+  if (handoff) {
+    return { handoff: handoff as HandoffCandidate, errors: [] };
   }
-
-  const candidates = [];
-  for (const line of raw.split(/\r?\n/)) {
-    const trimmed = line.trim();
-    if (!trimmed) continue;
-    const event = parseJsonMaybe(trimmed);
-    if (event) {
-      candidates.push(...candidateTextsFromJsonEvent(event));
-    } else {
-      candidates.push(trimmed);
-    }
-  }
-
-  for (const candidate of candidates) {
-    const parsed = parseObjectFromText(candidate);
-    const handoff = handoffFromParsed(parsed);
-    if (handoff) {
-      return { handoff, errors: [] };
-    }
-  }
-
   return {
     handoff: null,
     errors: ["No handoff.v1 JSON object found in adapter output."]
+  };
+}
+
+export function parseHandoffV2FromRaw(raw: string): HandoffV2ParseResult {
+  const handoff = findTaggedObject(raw, (value) => value.schema_version === "handoff.v2");
+  if (handoff) {
+    return { handoff: handoff as HandoffV2Candidate, errors: [] };
+  }
+  return {
+    handoff: null,
+    errors: ["No handoff.v2 JSON object found in adapter output."]
   };
 }

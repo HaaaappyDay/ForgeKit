@@ -85,6 +85,14 @@
           "type": "integer",
           "minimum": 1
         },
+        "max_steps": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_role_visits": {
+          "type": "integer",
+          "minimum": 1
+        },
         "token_budget": {
           "type": "string"
         }

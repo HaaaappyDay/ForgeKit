@@ -1,0 +1,37 @@
+{
+  "schema_version": "handoff.v2",
+  "run_id": "2026-06-20T101200Z-feature-planning-agentic",
+  "step_id": "n1-pm",
+  "role_id": "pm",
+  "status": "completed",
+  "summary": "Clarified target users and acceptance criteria for passwordless login.",
+  "decisions": [
+    {
+      "decision": "Use email magic link as the first pass",
+      "reason": "Lowest friction for the target users",
+      "alternatives": ["SMS one-time code"]
+    }
+  ],
+  "assumptions": [],
+  "risks": ["Email deliverability may affect login success"],
+  "open_questions": [],
+  "out_of_scope": [],
+  "markdown_body": "# Requirement\n\nAdd passwordless login via email magic link.",
+  "next_handoff": {
+    "kind": "handoff",
+    "recommended_role": "architect",
+    "instructions": "Turn the requirement into a technical design covering the auth boundary.",
+    "acceptance_criteria": [
+      "Technical design covers the magic-link auth path",
+      "Lists at least one integration risk and a mitigation",
+      "States the data model change scope"
+    ]
+  },
+  "artifacts": [
+    {
+      "path": "nodes/01-pm/work/attempt-01/output.md",
+      "type": "markdown",
+      "generated_from": "markdown_body"
+    }
+  ]
+}

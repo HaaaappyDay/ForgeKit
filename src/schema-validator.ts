@@ -50,8 +50,9 @@ function validateNode(schema: JsonSchema, value: unknown, path: string, errors: 
     if (schema.minItems !== undefined && value.length < schema.minItems) {
       errors.push(`${path}: expected at least ${schema.minItems} item(s)`);
     }
-    if (schema.items) {
-      value.forEach((item, index) => validateNode(schema.items, item, `${path}[${index}]`, errors));
+    const itemSchema = schema.items;
+    if (itemSchema) {
+      value.forEach((item, index) => validateNode(itemSchema, item, `${path}[${index}]`, errors));
     }
   }
 

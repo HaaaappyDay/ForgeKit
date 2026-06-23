@@ -1,0 +1,26 @@
+{
+  "schema_version": "acceptance-verdict.v1",
+  "run_id": "2026-06-20T101200Z-feature-planning-agentic",
+  "node_id": "n2-architect",
+  "role_id": "architect",
+  "incoming_handoff_ref": "nodes/01-pm/work/attempt-01/handoff.json",
+  "verdict": "accept",
+  "criteria_results": [
+    {
+      "criterion": "Technical design covers the magic-link auth path",
+      "met": true,
+      "reason": "Requirement clearly scopes the magic-link flow"
+    },
+    {
+      "criterion": "Lists at least one integration risk and a mitigation",
+      "met": true,
+      "reason": "Email deliverability risk is stated"
+    },
+    {
+      "criterion": "States the data model change scope",
+      "met": true,
+      "reason": "Scope is explicit enough to design against"
+    }
+  ],
+  "notes": "Ready to proceed with technical design."
+}

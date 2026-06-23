@@ -47,7 +47,7 @@ function parseInitArgs(args: string[]): InitOptions {
 
 function printInitHelp(): void {
   console.log(`Usage:
-  forge init [--template <blank|generic-plan-review|feature-planning>] [--project-name <name>] [--yes] [--force]
+  forge init [--template <${TEMPLATE_IDS.join("|")}>] [--project-name <name>] [--yes] [--force]
 
 Options:
   --template       Template to copy into .forgekit
@@ -91,6 +91,11 @@ async function chooseTemplate(current: string | undefined, yes: boolean): Promis
   } finally {
     rl.close();
   }
+}
+
+function workflowSchemaId(value: unknown): SchemaId {
+  const schemaVersion = (value as { schema_version?: string } | null)?.schema_version;
+  return schemaVersion === "forgekit.workflow.v2" ? "forgekit.workflow.v2" : "forgekit.workflow.v1";
 }
 
 function validateGenerated(schemaId: SchemaId, value: unknown, path: string): Promise<void> {
@@ -150,7 +155,7 @@ export async function runInitCommand(args: string[], cwd = process.cwd()): Promi
   }
 
   for (const [file, value] of Object.entries(template.workflows)) {
-    await writeGeneratedJson(forgekitRoot, `workflows/${file}`, value, "forgekit.workflow.v1");
+    await writeGeneratedJson(forgekitRoot, `workflows/${file}`, value, workflowSchemaId(value));
   }
 
   for (const [file, value] of Object.entries(template.adapters)) {
@@ -158,7 +163,7 @@ export async function runInitCommand(args: string[], cwd = process.cwd()): Promi
   }
 
   for (const [file, value] of Object.entries(template.examples)) {
-    const schemaId: SchemaId = file.startsWith("roles/") ? "forgekit.role.v1" : "forgekit.workflow.v1";
+    const schemaId: SchemaId = file.startsWith("roles/") ? "forgekit.role.v1" : workflowSchemaId(value);
     await writeGeneratedJson(forgekitRoot, `examples/${file}`, value, schemaId);
   }
 

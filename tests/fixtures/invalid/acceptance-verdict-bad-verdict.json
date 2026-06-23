@@ -1,0 +1,15 @@
+{
+  "schema_version": "acceptance-verdict.v1",
+  "run_id": "2026-06-20T101200Z-feature-planning-agentic",
+  "node_id": "n2-architect",
+  "role_id": "architect",
+  "incoming_handoff_ref": "nodes/01-pm/work/attempt-01/handoff.json",
+  "verdict": "maybe",
+  "criteria_results": [
+    {
+      "criterion": "Technical design covers the magic-link auth path",
+      "met": true,
+      "reason": "ok"
+    }
+  ]
+}

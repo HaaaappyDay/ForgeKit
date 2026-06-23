@@ -1,0 +1,35 @@
+{
+  "schema_version": "forgekit.run.v2",
+  "run_id": "2026-06-20T101200Z-feature-planning-agentic",
+  "workflow_id": "feature-planning-agentic",
+  "run_mode": "agentic",
+  "status": "paused",
+  "created_at": "2026-06-20T10:12:00Z",
+  "updated_at": "2026-06-20T10:18:00Z",
+  "started_at": "2026-06-20T10:12:00Z",
+  "completed_at": "",
+  "duration_ms": 0,
+  "task": {
+    "input": "Add passwordless login"
+  },
+  "active_cursor": null,
+  "nodes": [],
+  "edges": [],
+  "role_sessions": {},
+  "budget": {
+    "max_invocations": 20,
+    "max_retries_per_step": 1,
+    "max_duration_minutes": 30,
+    "max_output_bytes": 200000,
+    "max_steps": 24,
+    "max_role_visits": 3,
+    "invocations": 0,
+    "retries": 0,
+    "steps": 0,
+    "role_visits": {},
+    "input_chars": 0,
+    "output_bytes": 0,
+    "exceeded": []
+  },
+  "escalation": null
+}

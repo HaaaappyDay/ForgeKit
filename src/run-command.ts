@@ -1,5 +1,6 @@
 import { getRunSnapshot, retryRun } from "./core.js";
-import type { Run } from "./types.js";
+import { isAgenticRun } from "./run-store.js";
+import type { AgenticRun, Run } from "./types.js";
 
 interface RunCommandOptions {
   subcommand?: string;
@@ -50,6 +51,46 @@ function printRun(run: Run): void {
   console.log(`Summary: .forgekit/runs/${run.run_id}/summary.md`);
 }
 
+function printAgenticRun(run: AgenticRun): void {
+  console.log(`Run: ${run.run_id}`);
+  console.log(`Workflow: ${run.workflow_id}`);
+  console.log(`Mode: agentic`);
+  console.log(`Status: ${run.status}`);
+  console.log(`Created: ${run.created_at}`);
+  console.log(`Updated: ${run.updated_at}`);
+  console.log(`Duration: ${run.duration_ms} ms`);
+  console.log("");
+  console.log("Nodes:");
+  for (const node of run.nodes) {
+    const attempt = node.attempts.at(-1);
+    const attemptText = attempt ? `${attempt.phase} ${attempt.attempt_id}` : "no attempts";
+    console.log(`  ${node.node_seq}. ${node.node_id} (${node.role_id}) - ${node.status} [${attemptText}]`);
+    if (node.acceptance) console.log(`     gate: ${node.acceptance.verdict}`);
+    if (node.chosen_next_role) console.log(`     -> ${node.chosen_next_role}`);
+  }
+  console.log("");
+  console.log("Edges:");
+  if (run.edges.length === 0) {
+    console.log("  none");
+  } else {
+    for (const edge of run.edges) {
+      console.log(`  ${edge.from} -${edge.type}-> ${edge.to}`);
+    }
+  }
+  console.log("");
+  console.log("Budget:");
+  console.log(`  invocations: ${run.budget.invocations}/${run.budget.max_invocations}`);
+  console.log(`  steps: ${run.budget.steps}/${run.budget.max_steps}`);
+  console.log(`  role_visits: ${Object.entries(run.budget.role_visits).map(([role, count]) => `${role}=${count}`).join(", ") || "none"} (max ${run.budget.max_role_visits})`);
+  console.log(`  exceeded: ${run.budget.exceeded.length ? run.budget.exceeded.join(", ") : "none"}`);
+  if (run.escalation) {
+    console.log("");
+    console.log(`Escalation: ${run.escalation.reason} at ${run.escalation.at_node_id}`);
+  }
+  console.log("");
+  console.log(`Summary: .forgekit/runs/${run.run_id}/summary.md`);
+}
+
 export async function runRunCommand(args: string[], cwd = process.cwd()): Promise<void> {
   const options = parseRunArgs(args);
   if (options.help || !options.subcommand) {
@@ -64,6 +105,8 @@ export async function runRunCommand(args: string[], cwd = process.cwd()): Promis
     const run = await getRunSnapshot(options.runId, cwd);
     if (options.json) {
       console.log(JSON.stringify(run, null, 2));
+    } else if (isAgenticRun(run)) {
+      printAgenticRun(run);
     } else {
       printRun(run);
     }

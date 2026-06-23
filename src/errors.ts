@@ -13,6 +13,10 @@ export type ForgeKitErrorCode =
   | "handoff_parse_failed"
   | "handoff_schema_invalid"
   | "handoff_content_invalid"
+  | "route_target_not_allowed"
+  | "premature_final"
+  | "acceptance_verdict_invalid"
+  | "run_escalated"
   | "run_not_found"
   | "run_not_retryable"
   | "artifact_not_found";

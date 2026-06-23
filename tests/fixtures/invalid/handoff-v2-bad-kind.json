@@ -1,0 +1,18 @@
+{
+  "schema_version": "handoff.v2",
+  "run_id": "2026-06-20T101200Z-feature-planning-agentic",
+  "step_id": "n1-pm",
+  "role_id": "pm",
+  "status": "completed",
+  "summary": "Clarified requirement.",
+  "decisions": [],
+  "assumptions": [],
+  "risks": [],
+  "open_questions": [],
+  "out_of_scope": [],
+  "markdown_body": "# Requirement\n\nBody.",
+  "next_handoff": {
+    "kind": "delegate"
+  },
+  "artifacts": []
+}

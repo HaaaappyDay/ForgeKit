@@ -82,7 +82,7 @@ test("parseHandoffFromRaw reads handoff inside malformed envelope", () => {
 });
 
 test("validateHandoffContent checks required content", async () => {
-  const normalized = normalizeHandoffArtifacts(handoff({ markdown_body: "" }), "steps/01-step/attempt-01/output.md");
+  const normalized = normalizeHandoffArtifacts({ ...handoff({ markdown_body: "" }) }, "steps/01-step/attempt-01/output.md");
   const result = await validateHandoffContent(normalized, {
     runId: "run-1",
     stepId: "step-1",
@@ -94,7 +94,7 @@ test("validateHandoffContent checks required content", async () => {
 });
 
 test("normalizeHandoffArtifacts records generated output markdown", () => {
-  const normalized = normalizeHandoffArtifacts(handoff(), "steps/01-step/attempt-01/output.md");
+  const normalized = normalizeHandoffArtifacts({ ...handoff() }, "steps/01-step/attempt-01/output.md");
   assert.deepEqual(normalized.artifacts, [
     {
       path: "steps/01-step/attempt-01/output.md",

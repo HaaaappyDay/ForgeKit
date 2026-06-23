@@ -4,10 +4,17 @@ import { readJsonFile } from "./json-file.js";
 import { isNodeErrorCode } from "./node-error.js";
 import { loadSchema } from "./schema-registry.js";
 import { validateJson } from "./schema-validator.js";
-import type { AdapterConfig, ProjectConfig, RoleConfig, SchemaId, WorkflowConfig } from "./types.js";
+import type {
+  AdapterConfig,
+  AgenticWorkflowConfig,
+  ProjectConfig,
+  RoleConfig,
+  SchemaId,
+  WorkflowConfig
+} from "./types.js";
 
 function invalidConfigCode(schemaId: SchemaId): Pick<ForgeKitErrorShape, "code" | "category"> {
-  if (schemaId === "forgekit.workflow.v1") {
+  if (schemaId === "forgekit.workflow.v1" || schemaId === "forgekit.workflow.v2") {
     return {
       code: "workflow_invalid",
       category: "workflow"
@@ -227,4 +234,62 @@ export async function loadWorkflowConfig(
   }
 
   return { workflow, path };
+}
+
+export type LoadedWorkflow =
+  | { kind: "linear"; workflow: WorkflowConfig; path: string }
+  | { kind: "agentic"; workflow: AgenticWorkflowConfig; path: string };
+
+/**
+ * Reads a workflow file and discriminates on `schema_version` so callers can route
+ * between the linear (`forgekit.workflow.v1`) and agentic (`forgekit.workflow.v2`)
+ * engines. Each shape is validated against its own schema (spec §15).
+ */
+export async function loadAnyWorkflowConfig(
+  workflowId: string,
+  projectRoot = process.cwd()
+): Promise<LoadedWorkflow> {
+  const path = join(projectRoot, ".forgekit/workflows", `${workflowId}.json`);
+  let raw: { schema_version?: string; id?: string };
+  try {
+    raw = await readJsonFile<{ schema_version?: string; id?: string }>(path);
+  } catch (error) {
+    if (isNodeErrorCode(error, "ENOENT")) {
+      throw new ForgeKitError({
+        code: "workflow_invalid",
+        message: `Workflow config not found: ${path}`,
+        category: "workflow",
+        retryable: false,
+        details: { workflow_id: workflowId, path }
+      });
+    }
+    if (error instanceof SyntaxError) {
+      throw new ForgeKitError({
+        code: "workflow_invalid",
+        message: `Invalid JSON at ${path}: ${error.message}`,
+        category: "workflow",
+        retryable: false,
+        details: { workflow_id: workflowId, path }
+      });
+    }
+    throw error;
+  }
+
+  if (raw.schema_version === "forgekit.workflow.v2") {
+    await validateBySchema("forgekit.workflow.v2", raw, path);
+    const workflow = raw as unknown as AgenticWorkflowConfig;
+    if (workflow.id !== workflowId) {
+      throw new ForgeKitError({
+        code: "workflow_invalid",
+        message: `Workflow id mismatch: requested ${workflowId}, file contains ${workflow.id}`,
+        category: "workflow",
+        retryable: false,
+        details: { workflow_id: workflowId, path, file_workflow_id: workflow.id }
+      });
+    }
+    return { kind: "agentic", workflow, path };
+  }
+
+  const { workflow } = await loadWorkflowConfig(workflowId, projectRoot);
+  return { kind: "linear", workflow, path };
 }

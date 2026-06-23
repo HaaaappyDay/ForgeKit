@@ -1,0 +1,32 @@
+{
+  "schema_version": "forgekit.workflow.v2",
+  "id": "feature-planning-agentic",
+  "name": "Feature Planning (Agentic)",
+  "version": "0.1",
+  "mode": "agentic_run",
+  "entrypoint": "pm",
+  "repo_context": "standard",
+  "roles": {
+    "pm": {
+      "objective": "Clarify user need, constraints, and acceptance criteria.",
+      "handoff_targets": ["architect"]
+    },
+    "architect": {
+      "objective": "Produce technical design without editing files.",
+      "handoff_targets": []
+    },
+    "engineer": {
+      "objective": "Turn the design into an implementation plan.",
+      "handoff_targets": ["reviewer"]
+    },
+    "reviewer": {
+      "objective": "Review outputs for quality, risk, and completeness.",
+      "handoff_targets": ["engineer"]
+    }
+  },
+  "terminal_roles": ["reviewer"],
+  "conflict_policy": {
+    "default": "merge_role_decides",
+    "require_human_when": ["security_or_privacy_risk"]
+  }
+}

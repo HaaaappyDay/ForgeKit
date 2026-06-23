@@ -1,0 +1,179 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "forgekit.run.v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "run_id",
+    "workflow_id",
+    "run_mode",
+    "status",
+    "created_at",
+    "updated_at",
+    "started_at",
+    "completed_at",
+    "duration_ms",
+    "task",
+    "nodes",
+    "edges",
+    "role_sessions",
+    "budget"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "forgekit.run.v2"
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "workflow_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "run_mode": {
+      "type": "string",
+      "enum": ["agentic"]
+    },
+    "status": {
+      "type": "string",
+      "enum": ["pending", "running", "completed", "failed", "escalated"]
+    },
+    "created_at": { "type": "string" },
+    "updated_at": { "type": "string" },
+    "started_at": { "type": "string" },
+    "completed_at": { "type": "string" },
+    "duration_ms": { "type": "integer", "minimum": 0 },
+    "task": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["input"],
+      "properties": {
+        "input": { "type": "string" }
+      }
+    },
+    "active_cursor": {},
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["node_seq", "node_id", "role_id", "entry_reason", "status", "attempts"],
+        "properties": {
+          "node_seq": { "type": "integer", "minimum": 1 },
+          "node_id": { "type": "string", "minLength": 1 },
+          "role_id": { "type": "string", "minLength": 1 },
+          "adapter_id": { "type": "string" },
+          "entry_reason": {
+            "type": "string",
+            "enum": ["entrypoint", "handoff", "rework"]
+          },
+          "entered_from": {},
+          "objective": { "type": "string" },
+          "status": {
+            "type": "string",
+            "enum": ["pending", "running", "verifying", "working", "self_correcting", "completed", "failed", "rejected_upstream", "escalated"]
+          },
+          "acceptance": {},
+          "attempts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true,
+              "required": ["attempt_id", "status", "phase"],
+              "properties": {
+                "phase": {
+                  "type": "string",
+                  "enum": ["verification", "work"]
+                },
+                "attempt_id": { "type": "string", "minLength": 1 },
+                "status": { "type": "string", "minLength": 1 }
+              }
+            }
+          },
+          "handoff_ref": { "type": "string" },
+          "chosen_next_role": {}
+        }
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["from", "to", "type"],
+        "properties": {
+          "from": { "type": "string", "minLength": 1 },
+          "to": { "type": "string", "minLength": 1 },
+          "type": {
+            "type": "string",
+            "enum": ["handoff", "rework"]
+          },
+          "reason": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      }
+    },
+    "role_sessions": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["role_id", "adapter_id", "external_session_id", "resume_strategy", "created_at", "status"],
+        "properties": {
+          "role_id": { "type": "string", "minLength": 1 },
+          "adapter_id": { "type": "string", "minLength": 1 },
+          "external_session_id": { "type": "string" },
+          "resume_strategy": { "type": "string", "minLength": 1 },
+          "created_at": { "type": "string" },
+          "status": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "budget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "max_invocations",
+        "max_retries_per_step",
+        "max_duration_minutes",
+        "max_output_bytes",
+        "max_steps",
+        "max_role_visits",
+        "invocations",
+        "retries",
+        "steps",
+        "role_visits",
+        "input_chars",
+        "output_bytes",
+        "exceeded"
+      ],
+      "properties": {
+        "max_invocations": { "type": "integer", "minimum": 1 },
+        "max_retries_per_step": { "type": "integer", "minimum": 0 },
+        "max_duration_minutes": { "type": "integer", "minimum": 1 },
+        "max_output_bytes": { "type": "integer", "minimum": 1 },
+        "max_steps": { "type": "integer", "minimum": 1 },
+        "max_role_visits": { "type": "integer", "minimum": 1 },
+        "invocations": { "type": "integer", "minimum": 0 },
+        "retries": { "type": "integer", "minimum": 0 },
+        "steps": { "type": "integer", "minimum": 0 },
+        "role_visits": {
+          "type": "object",
+          "additionalProperties": { "type": "integer", "minimum": 0 }
+        },
+        "input_chars": { "type": "integer", "minimum": 0 },
+        "output_bytes": { "type": "integer", "minimum": 0 },
+        "exceeded": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "escalation": {}
+  }
+}

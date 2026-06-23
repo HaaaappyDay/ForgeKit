@@ -1,0 +1,151 @@
+{
+  "schema_version": "forgekit.run.v2",
+  "run_id": "2026-06-20T101200Z-feature-planning-agentic",
+  "workflow_id": "feature-planning-agentic",
+  "run_mode": "agentic",
+  "status": "completed",
+  "created_at": "2026-06-20T10:12:00Z",
+  "updated_at": "2026-06-20T10:18:00Z",
+  "started_at": "2026-06-20T10:12:00Z",
+  "completed_at": "2026-06-20T10:18:00Z",
+  "duration_ms": 360000,
+  "task": {
+    "input": "Add passwordless login"
+  },
+  "active_cursor": null,
+  "nodes": [
+    {
+      "node_seq": 1,
+      "node_id": "n1-pm",
+      "role_id": "pm",
+      "adapter_id": "codex-local",
+      "entry_reason": "entrypoint",
+      "entered_from": null,
+      "objective": "Clarify user need, constraints, and acceptance criteria.",
+      "status": "completed",
+      "acceptance": null,
+      "attempts": [
+        {
+          "phase": "work",
+          "attempt_id": "attempt-01",
+          "status": "completed",
+          "started_at": "2026-06-20T10:12:00Z",
+          "completed_at": "2026-06-20T10:13:00Z",
+          "duration_ms": 60000,
+          "prompt_ref": "nodes/01-pm/work/attempt-01/prompt.md",
+          "stdout_ref": "nodes/01-pm/work/attempt-01/raw.log",
+          "stderr_ref": "nodes/01-pm/work/attempt-01/error.log",
+          "handoff_ref": "nodes/01-pm/work/attempt-01/handoff.json",
+          "markdown_ref": "nodes/01-pm/work/attempt-01/output.md",
+          "validation_ref": "nodes/01-pm/work/attempt-01/validation.json",
+          "exit_code": 0,
+          "external_session_id": "codex-session-1",
+          "correction_count": 0,
+          "error": ""
+        }
+      ],
+      "handoff_ref": "nodes/01-pm/work/attempt-01/handoff.json",
+      "chosen_next_role": "architect"
+    },
+    {
+      "node_seq": 2,
+      "node_id": "n2-architect",
+      "role_id": "architect",
+      "adapter_id": "claude-code",
+      "entry_reason": "handoff",
+      "entered_from": "n1-pm",
+      "objective": "Turn the requirement into a technical design.",
+      "status": "completed",
+      "acceptance": {
+        "incoming_handoff_ref": "nodes/01-pm/work/attempt-01/handoff.json",
+        "verdict": "accept",
+        "verdict_ref": "nodes/02-architect/verification/attempt-01/verdict.json",
+        "unmet": []
+      },
+      "attempts": [
+        {
+          "phase": "verification",
+          "attempt_id": "attempt-01",
+          "status": "completed",
+          "started_at": "2026-06-20T10:13:00Z",
+          "completed_at": "2026-06-20T10:13:30Z",
+          "duration_ms": 30000,
+          "prompt_ref": "nodes/02-architect/verification/attempt-01/prompt.md",
+          "stdout_ref": "nodes/02-architect/verification/attempt-01/raw.log",
+          "stderr_ref": "nodes/02-architect/verification/attempt-01/error.log",
+          "handoff_ref": "",
+          "markdown_ref": "",
+          "validation_ref": "nodes/02-architect/verification/attempt-01/validation.json",
+          "exit_code": 0,
+          "external_session_id": "claude-session-1",
+          "correction_count": 0,
+          "error": ""
+        },
+        {
+          "phase": "work",
+          "attempt_id": "attempt-01",
+          "status": "completed",
+          "started_at": "2026-06-20T10:13:30Z",
+          "completed_at": "2026-06-20T10:18:00Z",
+          "duration_ms": 270000,
+          "prompt_ref": "nodes/02-architect/work/attempt-01/prompt.md",
+          "stdout_ref": "nodes/02-architect/work/attempt-01/raw.log",
+          "stderr_ref": "nodes/02-architect/work/attempt-01/error.log",
+          "handoff_ref": "nodes/02-architect/work/attempt-01/handoff.json",
+          "markdown_ref": "nodes/02-architect/work/attempt-01/output.md",
+          "validation_ref": "nodes/02-architect/work/attempt-01/validation.json",
+          "exit_code": 0,
+          "external_session_id": "claude-session-1",
+          "correction_count": 0,
+          "error": ""
+        }
+      ],
+      "handoff_ref": "nodes/02-architect/work/attempt-01/handoff.json",
+      "chosen_next_role": null
+    }
+  ],
+  "edges": [
+    {
+      "from": "n1-pm",
+      "to": "n2-architect",
+      "type": "handoff"
+    }
+  ],
+  "role_sessions": {
+    "pm": {
+      "role_id": "pm",
+      "adapter_id": "codex-local",
+      "external_session_id": "codex-session-1",
+      "resume_strategy": "codex_exec_resume",
+      "created_at": "2026-06-20T10:12:00Z",
+      "status": "active"
+    },
+    "architect": {
+      "role_id": "architect",
+      "adapter_id": "claude-code",
+      "external_session_id": "claude-session-1",
+      "resume_strategy": "claude_resume",
+      "created_at": "2026-06-20T10:13:00Z",
+      "status": "active"
+    }
+  },
+  "budget": {
+    "max_invocations": 20,
+    "max_retries_per_step": 1,
+    "max_duration_minutes": 30,
+    "max_output_bytes": 200000,
+    "max_steps": 24,
+    "max_role_visits": 3,
+    "invocations": 3,
+    "retries": 0,
+    "steps": 2,
+    "role_visits": {
+      "pm": 1,
+      "architect": 1
+    },
+    "input_chars": 1024,
+    "output_bytes": 4096,
+    "exceeded": []
+  },
+  "escalation": null
+}

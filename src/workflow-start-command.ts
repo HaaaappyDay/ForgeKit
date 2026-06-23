@@ -1,7 +1,12 @@
 import { readFile } from "node:fs/promises";
 import { createInterface } from "node:readline/promises";
 import { buildWorkflowRunPlan, startWorkflowRun } from "./core.js";
-import { formatRunPlan } from "./run-plan.js";
+import { formatAgenticRunPlan, formatRunPlan } from "./run-plan.js";
+import type { AgenticRunPlan, RunPlan } from "./types.js";
+
+function isAgenticPlan(plan: RunPlan | AgenticRunPlan): plan is AgenticRunPlan {
+  return (plan as AgenticRunPlan).run_mode === "agentic";
+}
 
 interface WorkflowStartOptions {
   workflowId?: string;
@@ -111,7 +116,8 @@ export async function runWorkflowStartCommand(args: string[], cwd = process.cwd(
   }
 
   if (!options.json) {
-    console.log(formatRunPlan(plan).trimEnd());
+    const formatted = isAgenticPlan(plan) ? formatAgenticRunPlan(plan) : formatRunPlan(plan);
+    console.log(formatted.trimEnd());
   }
 
   if (!options.yes && !(await confirmRun())) {

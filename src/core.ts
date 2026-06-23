@@ -8,15 +8,18 @@ import {
   listWorkflows as listWorkflowConfigs
 } from "./config-discovery.js";
 import { loadRunHistory } from "./history-command.js";
-import { loadAdapterConfig } from "./project-config.js";
-import { buildRunPlan } from "./run-plan.js";
-import { readRun } from "./run-store.js";
+import { retryAgenticWorkflow, runAgenticWorkflow } from "./agentic-runner.js";
+import { loadAdapterConfig, loadAnyWorkflowConfig } from "./project-config.js";
+import { buildAgenticRunPlan, buildRunPlan } from "./run-plan.js";
+import { isAgenticRun, readAnyRun } from "./run-store.js";
 import { listRunArtifacts, readRunArtifact as readRunArtifactContent } from "./run-artifacts.js";
 import { retryWorkflow, runWorkflow } from "./workflow-runner.js";
 import type {
   AdapterConfig,
   AdapterDiscoveryEntry,
   AdapterProbeResult,
+  AgenticRun,
+  AgenticRunPlan,
   ConfigDetail,
   RoleConfig,
   RoleDiscoveryEntry,
@@ -55,23 +58,50 @@ export interface BuildWorkflowRunPlanOptions extends CoreProjectOptions {
   taskInput: string;
 }
 
-export async function startWorkflowRun(options: StartWorkflowRunOptions): Promise<Run> {
+export async function startWorkflowRun(options: StartWorkflowRunOptions): Promise<Run | AgenticRun> {
+  const loaded = await loadAnyWorkflowConfig(options.workflowId, options.projectRoot ?? process.cwd());
+  if (loaded.kind === "agentic") {
+    return runAgenticWorkflow({
+      workflow: loaded.workflow,
+      taskInput: options.taskInput,
+      projectRoot: options.projectRoot,
+      env: options.env,
+      eventObservers: options.eventObservers,
+      eventSinks: options.eventSinks,
+      writeEventsJsonl: options.writeEventsJsonl
+    });
+  }
   return runWorkflow(options);
 }
 
-export async function retryRun(options: RetryRunOptions): Promise<Run> {
+export async function retryRun(options: RetryRunOptions): Promise<Run | AgenticRun> {
+  const existing = await readAnyRun(options.projectRoot ?? process.cwd(), options.runId);
+  if (isAgenticRun(existing)) {
+    return retryAgenticWorkflow(options);
+  }
   return retryWorkflow(options);
 }
 
-export async function buildWorkflowRunPlan(options: BuildWorkflowRunPlanOptions): Promise<RunPlan> {
+export async function buildWorkflowRunPlan(
+  options: BuildWorkflowRunPlanOptions
+): Promise<RunPlan | AgenticRunPlan> {
+  const projectRoot = options.projectRoot ?? process.cwd();
+  const loaded = await loadAnyWorkflowConfig(options.workflowId, projectRoot);
+  if (loaded.kind === "agentic") {
+    return buildAgenticRunPlan({
+      workflow: loaded.workflow,
+      taskInput: options.taskInput,
+      projectRoot
+    });
+  }
   return buildRunPlan(options);
 }
 
-export async function getRunSnapshot(runId: string, projectRoot = process.cwd()): Promise<Run> {
-  return readRun(projectRoot, runId);
+export async function getRunSnapshot(runId: string, projectRoot = process.cwd()): Promise<Run | AgenticRun> {
+  return readAnyRun(projectRoot, runId);
 }
 
-export async function listRuns(projectRoot = process.cwd()): Promise<Run[]> {
+export async function listRuns(projectRoot = process.cwd()): Promise<Array<Run | AgenticRun>> {
   return loadRunHistory(projectRoot);
 }
 
