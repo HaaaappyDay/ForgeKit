@@ -161,6 +161,24 @@ test("workflow start prints the run plan before executing with --yes", async () 
     assert.match(output, /mode: no file modifications/);
     assert.match(output, /Run: /);
     assert.match(output, /Status: completed/);
+    assert.match(output, /Summary: \.forgekit\/runs\/.+\/summary\.md/);
+    assert.match(output, /Next: forge run show /);
+    assert.match(output, /Monitor: forge tui /);
+  });
+});
+
+test("workflow start uses the default workflow when no workflow id is provided", async () => {
+  await withTempProject(async (dir) => {
+    await runInitCommand(["--template", "generic-plan-review", "--yes"], dir);
+
+    const planJson = await captureConsole(() => runWorkflowStartCommand([
+      "--input",
+      "Plan a launch checklist",
+      "--plan-json"
+    ], dir));
+    const parsedPlan = JSON.parse(planJson) as { workflow_id: string; steps: unknown[] };
+    assert.equal(parsedPlan.workflow_id, "generic-plan-review");
+    assert.equal(parsedPlan.steps.length, 3);
   });
 });
 
@@ -194,9 +212,11 @@ test("workflow start supports plan-json and run json output", async () => {
       plan: { workflow_id: string };
       run: { status: string };
       events_ref: string;
+      summary_ref: string;
     };
     assert.equal(parsedRun.plan.workflow_id, "generic-plan-review");
     assert.equal(parsedRun.run.status, "completed");
     assert.match(parsedRun.events_ref, /events\.jsonl$/);
+    assert.match(parsedRun.summary_ref, /summary\.md$/);
   });
 });

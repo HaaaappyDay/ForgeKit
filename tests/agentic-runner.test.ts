@@ -133,11 +133,11 @@ function first(re, text) { const m = text.match(re); return m ? m[1].trim() : ""
     const premature = process.env.FAKE_PREMATURE_FINAL === "1" && roleId === "pm";
     let next;
     if (premature) {
-      next = { kind: "final" };
+      next = { kind: "final", recommended_role: "", instructions: "", acceptance_criteria: [] };
     } else if (mustNotFinal) {
       next = { kind: "handoff", recommended_role: badRoute ? "ghost-role" : candidates[0], instructions: "Verify the deliverable matches the task.", acceptance_criteria: ["Deliverable addresses the task"] };
     } else {
-      next = { kind: "final" };
+      next = { kind: "final", recommended_role: "", instructions: "", acceptance_criteria: [] };
     }
     const handoff = {
       schema_version: "handoff.v2",

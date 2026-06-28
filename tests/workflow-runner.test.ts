@@ -51,7 +51,7 @@ function fakeHandoffShellFunction(): string {
   if [ -z "$role_id" ]; then
     role_id=$(printf "%s" "$prompt" | sed -n 's/^- id: //p' | head -n 1)
   fi
-  printf '{"schema_version":"handoff.v1","run_id":"%s","step_id":"%s","role_id":"%s","status":"completed","summary":"Valid handoff for %s","decisions":[],"assumptions":[],"risks":[],"open_questions":[],"out_of_scope":[],"markdown_body":"# Output for %s","next_handoff":{"recommended_role":"next","instructions":"Continue to the next step."},"artifacts":[]}
+  printf '{"schema_version":"handoff.v1","run_id":"%s","step_id":"%s","role_id":"%s","status":"completed","summary":"Valid handoff for %s","decisions":[],"assumptions":["Shared assumption"],"risks":["Shared risk"],"open_questions":["Shared question"],"out_of_scope":[],"markdown_body":"# Output for %s","next_handoff":{"recommended_role":"next","instructions":"Continue to the next step."},"artifacts":[]}
 ' "$run_id" "$step_id" "$role_id" "$step_id" "$step_id"
 }
 `;
@@ -162,11 +162,16 @@ exit 0
       workflowSummary.completed_steps.map((step) => step.step_id),
       ["clarify-requirement", "technical-design", "implementation-plan", "test-plan"]
     );
+    assert.deepEqual(workflowSummary.current_assumptions, ["Shared assumption"]);
+    assert.deepEqual(workflowSummary.current_risks, ["Shared risk"]);
+    assert.deepEqual(workflowSummary.current_open_questions, ["Shared question"]);
 
     const finalSummary = await readFile(join(dir, ".forgekit/runs", run.run_id, "summary.md"), "utf8");
     assert.match(finalSummary, /# ForgeKit Run Summary/);
+    assert.match(finalSummary, /## Result/);
     assert.match(finalSummary, /Add passwordless login/);
     assert.match(finalSummary, /Output for test-plan/);
+    assert.equal((finalSummary.match(/Shared risk/g) ?? []).length, 1);
   });
 });
 

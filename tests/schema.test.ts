@@ -24,6 +24,25 @@ async function readJson(path: string): Promise<unknown> {
   return JSON.parse(await readFile(path, "utf8")) as unknown;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function assertStrictOutputSchemaObjects(schema: unknown, path = "$"): void {
+  if (!isRecord(schema)) return;
+  if (schema.type === "object" && isRecord(schema.properties)) {
+    const propertyNames = Object.keys(schema.properties).sort();
+    const required = Array.isArray(schema.required) ? [...schema.required].sort() : [];
+    assert.deepEqual(required, propertyNames, `${path}: required must include every property for structured output`);
+    for (const [key, child] of Object.entries(schema.properties)) {
+      assertStrictOutputSchemaObjects(child, `${path}.properties.${key}`);
+    }
+  }
+  if (schema.type === "array") {
+    assertStrictOutputSchemaObjects(schema.items, `${path}.items`);
+  }
+}
+
 test("registry exposes every Phase 1 schema", () => {
   const ids = listSchemas().map((schema) => schema.id);
   assert.deepEqual(ids, Object.keys(validFixtures));
@@ -61,6 +80,11 @@ test("handoff.v2 rejects unknown next_handoff kind", async () => {
   const result = validateJson(schema, fixture);
   assert.equal(result.valid, false);
   assert.ok(result.errors.some((error) => error.includes("next_handoff.kind")));
+});
+
+test("agentic structured output schemas require every declared object property", async () => {
+  assertStrictOutputSchemaObjects(await loadSchema("handoff.v2"));
+  assertStrictOutputSchemaObjects(await loadSchema("acceptance-verdict.v1"));
 });
 
 test("acceptance-verdict.v1 rejects unknown verdict", async () => {

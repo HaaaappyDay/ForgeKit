@@ -99,7 +99,7 @@
     "next_handoff": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["kind"],
+      "required": ["kind", "recommended_role", "instructions", "acceptance_criteria"],
       "properties": {
         "kind": {
           "type": "string",

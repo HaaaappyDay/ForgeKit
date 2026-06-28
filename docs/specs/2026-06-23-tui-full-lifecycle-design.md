@@ -133,7 +133,9 @@ Extracted from the current `app.ts`. Responsibilities:
   `KeyName` union (reuse/extend `mapKey` from `app.ts`), plus printable chars and
   Backspace for text input fields (see wizard/init).
 - Screen stack: `push(screen)`, `pop()`, `replace(screen)`. `Esc`/back pops; an
-  empty stack quits. `q` quits from non-text screens.
+  empty stack quits. `q` requests quit from non-text screens. If any
+  TUI-launched live run is still active, the shell requires a second quit request
+  before ending the process; `Esc` cancels that pending confirmation.
 - Throttled repaint (50ms coalescing) calling the active screen's `render(dims)`
   and writing `composeFrame(...)`.
 - Resize handling: listen to `process.stdout` `"resize"` and repaint.
@@ -264,8 +266,11 @@ template prompt, then calls `initProject`. Keep `tests/init.test.ts` green.
 ## 7. Screens (state, keys, core calls, layout)
 
 All layouts are content lines; the shell frames them. Footers list key hints.
-Standard keys: `Esc` = back/pop, `q` = quit (non-text screens). Long lists scroll
-with `up/down`; selection marked with `>`.
+Standard keys: `Esc` = back/pop, and on Home it requests quit; `q` = request
+quit (non-text screens). Long lists scroll with `up/down`; selection marked with
+`>`. If an in-process live run is still active, quit requests are guarded by a
+shell-level second confirmation even when the user has returned from Monitor to
+Home or another screen.
 
 ### 7.1 Home — `screens/home.ts`
 
@@ -275,7 +280,8 @@ with `up/down`; selection marked with `>`.
   to "(uninitialized)").
 - State: selected menu index; recent runs (top ~5).
 - Menu: `New run`, `History`, `Config`, `Adapters`, `Initialize project`, `Quit`.
-- Keys: `up/down` move; `Enter` → push corresponding screen (or quit).
+- Keys: `up/down` move; `Enter` → push corresponding screen (or request quit);
+  `Esc`/`q` request quit.
 - Layout: see §1 conversation sketch — title + project, menu, recent list, footer.
 
 ### 7.2 Launch wizard — `screens/wizard.ts`
@@ -315,9 +321,10 @@ Refactor of v1. Takes a `MonitorFeed` (live or file) and is run-type-agnostic.
   artifacts carry `node_id`/`attempt_id`.
 - Keys: `up/down` select step/node or scroll reader; `Enter` open artifacts;
   `left/right` switch artifact; `g/G` top/bottom; `Esc` back to previous screen
-  (history/home) or, for a live run, back to home (the run keeps running in
-  background only if the process stays alive — quitting the TUI ends in-process
-  runs; document this).
+  (history/home) or, for a live run, back to home. A live run can continue in
+  the background only while the TUI process stays alive; quitting the TUI ends
+  in-process runs, and that quit is guarded by the shell-level live-run
+  confirmation.
 - Live behavior: feed pushes events → repaint; on terminal status, stop polling.
 
 ### 7.4 History — `screens/history.ts`
@@ -446,15 +453,17 @@ existing tests green throughout.
 
 ## 13. Progress checklist (update as slices land)
 
-- [ ] 1. Init refactor (`core-init.ts`)
-- [ ] 2. Shell + screen interface
-- [ ] 3. Monitor refactor + `FileMonitorFeed` (linear, back-compat)
-- [ ] 4. Agentic monitor view-model + renderer
-- [ ] 5. Home screen
-- [ ] 6. History screen
-- [ ] 7. Config browse screen
-- [ ] 8. Adapters probe screen
-- [ ] 9. Launch wizard + `LiveMonitorFeed`
-- [ ] 10. Init screen
-- [ ] 11. Entry wiring + usage-guide docs
-- [ ] Final: `npm test` + `npm run typecheck` green; manual TTY smoke
+- [x] 1. Init refactor (`core-init.ts`)
+- [x] 2. Shell + screen interface
+- [x] 3. Monitor refactor + `FileMonitorFeed` (linear, back-compat)
+- [x] 4. Agentic monitor view-model + renderer
+- [x] 5. Home screen
+- [x] 6. History screen
+- [x] 7. Config browse screen
+- [x] 8. Adapters probe screen
+- [x] 9. Launch wizard + `LiveMonitorFeed`
+- [x] 10. Init screen
+- [x] 11. Entry wiring + usage-guide docs
+- [ ] Final: `npm run typecheck` and TUI-focused tests green; full `npm test`
+  currently still fails outside the TUI changes in `agentic-runner.test.js` and
+  `agentic-template.test.js`.

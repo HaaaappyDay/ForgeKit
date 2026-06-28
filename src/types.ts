@@ -305,7 +305,12 @@ export type NextHandoff =
       instructions: string;
       acceptance_criteria: string[];
     }
-  | { kind: "final" };
+  | {
+      kind: "final";
+      recommended_role: "";
+      instructions: "";
+      acceptance_criteria: [];
+    };
 
 export interface HandoffV2 {
   schema_version: "handoff.v2";
@@ -342,7 +347,7 @@ export interface AcceptanceVerdict {
   incoming_handoff_ref: string;
   verdict: "accept" | "reject";
   criteria_results: AcceptanceCriterionResult[];
-  notes?: string;
+  notes: string;
 }
 
 export type AcceptanceVerdictCandidate = Partial<AcceptanceVerdict> & Record<string, unknown>;

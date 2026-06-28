@@ -6,6 +6,7 @@ import test from "node:test";
 import { runHistoryCommand } from "../src/history-command.js";
 import { runInitCommand } from "../src/init-command.js";
 import { readJsonFile, writeJsonFile } from "../src/json-file.js";
+import { runAdapterDiscoveryCommand } from "../src/discovery-command.js";
 import { runRoleCommand } from "../src/role-command.js";
 import { runRunCommand } from "../src/run-command.js";
 import { runWorkflow } from "../src/workflow-runner.js";
@@ -156,6 +157,26 @@ test("history, run show, and role path report local run metadata", async () => {
     const rolePathOutput = await captureConsole(() => runRoleCommand(["path", "planner"], dir));
     assert.match(rolePathOutput, new RegExp(`${dir}/\\.forgekit/roles/planner\\.json`));
     assert.match(rolePathOutput, /CLI overrides cannot broaden write policy/);
+  });
+});
+
+test("adapter set-command updates the adapter executable and prints the next probe", async () => {
+  await withTempProject(async (dir) => {
+    await runInitCommand(["--template", "generic-plan-review", "--yes"], dir);
+
+    const output = await captureConsole(() => runAdapterDiscoveryCommand([
+      "set-command",
+      "codex-local",
+      "/usr/local/bin/codex"
+    ], dir));
+
+    assert.match(output, /Adapter: codex-local/);
+    assert.match(output, /Command: codex -> \/usr\/local\/bin\/codex/);
+    assert.match(output, /Next: forge adapter probe codex-local/);
+
+    const adapter = await readJsonFile<AdapterConfig>(join(dir, ".forgekit/adapters/codex.json"));
+    assert.equal(adapter.command, "/usr/local/bin/codex");
+    assert.deepEqual(adapter.args, []);
   });
 });
 

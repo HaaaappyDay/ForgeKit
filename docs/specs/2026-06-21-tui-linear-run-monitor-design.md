@@ -4,6 +4,11 @@ Status: draft
 Date: 2026-06-21
 Scope: v1 of the ForgeKit TUI, a read-only real-time monitor for a single linear run
 
+Note: this is a historical v1 design. The current full-lifecycle TUI is described
+in `docs/specs/2026-06-23-tui-full-lifecycle-design.md` and includes launch,
+history, config browsing, adapter probe, initialization, and agentic run
+monitoring.
+
 ## Context
 
 The TUI interface foundation (`docs/specs/2026-06-19-tui-interface-foundation-design.draft.md`)

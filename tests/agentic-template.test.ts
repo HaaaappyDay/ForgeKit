@@ -95,7 +95,7 @@ function emitSession(roleId) {
     const candidates = candLine.split(",").map((s) => s.trim()).filter(Boolean);
     const next = mustNotFinal
       ? { kind: "handoff", recommended_role: candidates[0], instructions: "Continue the plan and verify it matches the task.", acceptance_criteria: ["Deliverable addresses the task"] }
-      : { kind: "final" };
+      : { kind: "final", recommended_role: "", instructions: "", acceptance_criteria: [] };
     const handoff = {
       schema_version: "handoff.v2",
       run_id: runId,

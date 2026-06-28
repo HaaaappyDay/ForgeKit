@@ -127,21 +127,28 @@ forge adapter probe codex-local --json
 ```
 
 把 `command` 改成当前机器上可执行的命令，例如 `codex`、`claude`，或对应的绝对路径。
+也可以直接用命令更新：
+
+```bash
+forge adapter set-command codex-local /path/to/codex
+forge adapter probe codex-local
+```
 
 ### 4.3 启动 workflow
 
 用内联输入启动：
 
 ```bash
-forge workflow start feature-planning --input "为设置页设计一个导出配置功能" --yes
+forge workflow start --input "为设置页设计一个导出配置功能" --yes
 ```
 
 用文件作为输入：
 
 ```bash
-forge workflow start feature-planning --input-file task.md --yes
+forge workflow start --input-file task.md --yes
 ```
 
+未显式传入 workflow ID 时，CLI 会使用 `.forgekit/config.json` 里的 `defaults.workflow`。
 不加 `--yes` 时，CLI 会先展示 run plan，然后在交互式终端询问是否继续。非交互环境必须加 `--yes`。
 
 ### 4.4 查看结果
@@ -356,21 +363,41 @@ forge adapter probe claude-code --json
 
 probe 不保证结构化输出在真实 workflow 中一定稳定，它只做基础可用性检查。
 
+### `forge adapter set-command`
+
+更新某个 adapter 配置里的可执行命令。
+
+```bash
+forge adapter set-command <adapter-id> <command-or-path>
+```
+
+示例：
+
+```bash
+forge adapter set-command codex-local /opt/bin/codex
+forge adapter probe codex-local
+```
+
+这个命令只修改 adapter 的 `command` 字段，不会修改 `args`、认证、计费或写策略配置。
+
 ### `forge workflow start`
 
 启动 workflow。
 
 ```bash
-forge workflow start <workflow-id> --input <text> [--yes]
-forge workflow start <workflow-id> --input-file <path> [--yes]
+forge workflow start [<workflow-id>] --input <text> [--yes]
+forge workflow start [<workflow-id>] --input-file <path> [--yes]
 ```
 
 规则：
 
 - `--input` 和 `--input-file` 只能二选一。
+- 未提供 `<workflow-id>` 时使用 `defaults.workflow`。
 - 不提供输入会失败。
 - 非交互环境必须加 `--yes`。
 - 启动前会打印 run plan，包含步骤、adapter、上下文模式、认证计费声明、写策略和软预算。
+
+运行结束后，CLI 会打印 `run.json`、`events.jsonl`、`summary.md` 路径，以及 `forge run show <run-id>` 和 `forge tui <run-id>` 下一步命令。
 
 ### `forge history`
 
@@ -411,46 +438,46 @@ forge run retry <run-id>
 
 ### `forge tui`
 
-只读的实时终端监控器，挂载到一个已存在的 run 上，查看步骤进度并浏览产物。
+交互式的全生命周期终端面板（dashboard）。CLI 与 TUI 并存，互不影响。
 
 ```bash
-forge tui <run-id>
+forge tui            # 打开面板首页（Home）
+forge tui <run-id>   # 直接挂载到某个 run 的监控视图（向后兼容）
 ```
 
 要点：
 
-- run 由 `forge workflow start` 启动并写入 `events.jsonl`；`forge tui` 是独立进程，tail `events.jsonl` 做实时更新，并以 `run.json` 为权威状态。
-- 进行中和已完成的 run 都能看：进行中会实时刷新；已完成（或没有 `events.jsonl` 的旧 run）作为事后查看器，直接基于 `run.json` 渲染。
-- 当前版本只支持线性 run（`forgekit.run.v1`）。传入 agentic run（`forgekit.run.v2`）会提示暂不支持并以非零码退出。
+- 无参数时打开 Home，提供：发起新 run（向导）、实时监控、历史浏览、只读配置浏览、adapter 探测、初始化项目。
+- 带 `<run-id>` 时直接进入只读监控视图，等价于旧版行为：tail `events.jsonl` 做实时更新，以 `run.json` 为权威状态。
+- 同时支持线性 run（`forgekit.run.v1`）与 agentic run（`forgekit.run.v2`）。agentic run 以节点列表/时间线呈现（不绘制图）。
 - 需要交互式终端（TTY）。非 TTY 环境会直接报错退出。
+- **进程内执行**：在面板内发起的 run 跑在当前进程里，退出 TUI 会结束这些 run（其外部 agent 子进程随进程一起退出）。监控页会标明当前是 live in-process 还是 attached read-only；只要仍有 TUI 内发起的 live run 在运行，从任意非文本输入屏退出 TUI（`q`、Ctrl-C、Home 的 `Esc` 或 Quit 菜单）都会先要求二次确认，`Esc` 可取消确认。如需后台运行，用 `forge workflow start` 启动，再用 `forge tui <run-id>` 挂载查看。
 
-典型用法是开两个终端，一个跑、一个看：
+#### 屏幕（Screens）
 
-```bash
-# 终端 A：启动 run
-forge workflow start feature-planning --input-file task.md --yes
+- **Home（首页）**：菜单（New run / History / Config / Adapters / Initialize project / Quit）与最近 run 列表；最近 run 可直接选中并按 `Enter` 以只读方式打开监控视图。
+- **New run（向导，三步）**：① 选 workflow（标注线性/agentic、步骤数；无效配置不可选）→ ② 输入任务（单行文本，或填任务文件路径，`Tab` 切换字段，二者必须只填一个，确认时读取文件）→ ③ 成功构建并预览 run plan（步骤/角色、adapter、预算、警告）后 `Enter` 启动，随即进入实时监控视图；plan 构建失败时需先 `Esc` 返回修正输入。
+- **Monitor（监控）**：线性显示步骤列表 + 预算 + 事件流；agentic 显示节点列表（`节点序号 节点ID (角色) [状态] 阶段`、acceptance verdict、下一个角色、escalation、预算），并带 `>`/`*`/`->` 图例和选中节点详情。`Enter` 打开产物阅读器。
+- **History（历史）**：列出全部 run（`run_id status workflow_id updated_at`），下方预览选中 run 的任务、失败/escalation 摘要和 summary 路径，`Enter` 以只读方式挂载监控视图。
+- **Config（配置浏览，只读）**：Workflows / Roles / Adapters 三个标签页，按 workflow 自身版本显示线性/agentic 类型与校验状态，`Enter` 查看可滚动的详情。
+- **Adapters（探测）**：列出 adapter，并把列表状态标为 config validation；`Enter` 运行 runtime probe，探测中保留当前 adapter 标题，完成后展示命令解析、启动检查、auth/billing/write_policy 等运行时结果。
+- **Initialize project（初始化）**：选择模板、项目名、`force` 开关，`Enter` 写入 `.forgekit`；已存在时给出提示并建议打开 `force`。`force` 会明确提示将覆盖模板生成的 `config.json`、`roles/`、`workflows/`、`adapters/`、`examples/`，并要求再次 `Enter` 确认。初始化成功后 `Enter` 返回 Home，`n` 进入 New run。
 
-# 终端 B：用上面输出的 run-id 挂载监控器
-forge tui <run-id>
-```
+长 ID、任务文本、adapter command、事件消息等关键值会尽量换行显示；主要列表会在下方显示当前选中项详情，避免只能看到被截断的行。
 
-键位：
+#### 键位
 
 ```text
-↑ / ↓      在步骤列表中移动选择 / 在产物阅读器中滚动
-Enter      打开选中步骤的产物
-← / →      在该步骤的多个产物间切换
-g / G      跳到产物顶部 / 底部
-Esc        从产物阅读器返回步骤列表
-q          退出（Ctrl-C 同样会干净地复原终端）
+↑ / ↓      在列表/菜单中移动选择，或在阅读器/详情中滚动
+Enter      确认 / 打开 / 启动
+← / →      切换配置标签页或产物，或在初始化中切换取值
+Tab        切换字段（任务/文件，或配置标签页）
+g / G      在阅读器、详情页或 probe 结果中跳到顶部 / 底部
+Esc        返回上一屏；Home 顶层按退出处理
+q          请求退出（非文本输入屏；仍有 live run 时需要二次确认）
 ```
 
-界面包含两个视图：
-
-- **监控视图**：run 头部（run-id、workflow、状态、时长）、步骤列表（状态与当前 attempt）、预算行（invocations/retries/output bytes 与上限，超限项会标出）、最近事件流。
-- **产物阅读器**：可滚动阅读文本产物（`output.md`、`handoff.json`、`validation.json`、`prompt.md`）。`raw.log`、`error.log` 这类可能很大的日志只读取尾部若干行。
-
-监控器是纯只读的：它只通过 ForgeKit 的只读接口读取 `run.json`、`events.jsonl` 和产物文件，不会修改 run 状态或项目文件。
+无论从哪个屏幕，实际退出、SIGTERM 或异常都会干净地复原终端（显示光标、离开备用屏）；Ctrl-C 在没有待确认 live run 时会退出，在仍有 live run 时先进入退出确认。屏幕按键处理或进入屏幕时的异常会以临时 `error: ...` 行显示在 footer 上方，而不是静默无响应。History、Config、attached Monitor 等读取类屏幕走 ForgeKit 的只读接口；New run 会写入 `.forgekit/runs/<run-id>/`，Initialize project 会写入模板生成的 `.forgekit` 配置文件。
 
 ### `forge role path`
 
@@ -678,14 +705,19 @@ adapter 的 `command` 找不到或不可执行。编辑对应文件，例如：
 .forgekit/adapters/codex.json
 ```
 
-把 `command` 改成当前机器可运行的命令。
+把 `command` 改成当前机器可运行的命令，或直接运行：
+
+```bash
+forge adapter set-command codex-local /path/to/codex
+forge adapter probe codex-local
+```
 
 ### `Use --yes for non-interactive workflow start confirmation`
 
 你在非交互环境启动 workflow，但没有加 `--yes`。改为：
 
 ```bash
-forge workflow start feature-planning --input "..." --yes
+forge workflow start --input "..." --yes
 ```
 
 ### `Use either --input or --input-file, not both`
@@ -727,7 +759,7 @@ forge init --template feature-planning --project-name my-project --yes
 forge adapter probe codex-local
 forge adapter probe claude-code
 forge schema validate forgekit.config.v1 .forgekit/config.json
-forge workflow start feature-planning --input-file task.md --yes
+forge workflow start --input-file task.md --yes
 forge history
 forge run show <run-id>
 ```

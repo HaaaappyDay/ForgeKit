@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { createInterface } from "node:readline/promises";
 import { buildWorkflowRunPlan, startWorkflowRun } from "./core.js";
+import { loadProjectConfig } from "./project-config.js";
 import { formatAgenticRunPlan, formatRunPlan } from "./run-plan.js";
 import type { AgenticRunPlan, RunPlan } from "./types.js";
 
@@ -54,13 +55,14 @@ function parseStartArgs(args: string[]): WorkflowStartOptions {
 
 function printHelp(): void {
   console.log(`Usage:
-  forge workflow start <workflow-id> --input <text> [--yes]
-  forge workflow start <workflow-id> --input-file <path> [--yes]
-  forge workflow start <workflow-id> --input <text> --plan-json
-  forge workflow start <workflow-id> --input <text> --yes --json
+  forge workflow start [<workflow-id>] --input <text> [--yes]
+  forge workflow start [<workflow-id>] --input-file <path> [--yes]
+  forge workflow start [<workflow-id>] --input <text> --plan-json
+  forge workflow start [<workflow-id>] --input <text> --yes --json
 
 Shows the run plan, records run trace, validates handoff JSON, writes output.md,
-and self-corrects once when validation fails.`);
+and self-corrects once when validation fails. If <workflow-id> is omitted,
+ForgeKit uses defaults.workflow from .forgekit/config.json.`);
 }
 
 async function readTaskInput(options: WorkflowStartOptions): Promise<string> {
@@ -95,13 +97,10 @@ export async function runWorkflowStartCommand(args: string[], cwd = process.cwd(
     printHelp();
     return;
   }
-  if (!options.workflowId) {
-    throw new Error("Usage: forge workflow start <workflow-id> --input <text>");
-  }
-
   const taskInput = await readTaskInput(options);
+  const workflowId = options.workflowId ?? (await loadProjectConfig(cwd)).config.defaults.workflow;
   const plan = await buildWorkflowRunPlan({
-    workflowId: options.workflowId,
+    workflowId,
     taskInput,
     projectRoot: cwd
   });
@@ -126,7 +125,7 @@ export async function runWorkflowStartCommand(args: string[], cwd = process.cwd(
   }
 
   const run = await startWorkflowRun({
-    workflowId: options.workflowId,
+    workflowId,
     taskInput,
     projectRoot: cwd,
     writeEventsJsonl: true
@@ -136,13 +135,17 @@ export async function runWorkflowStartCommand(args: string[], cwd = process.cwd(
     console.log(JSON.stringify({
       plan,
       run,
-      events_ref: `.forgekit/runs/${run.run_id}/events.jsonl`
+      events_ref: `.forgekit/runs/${run.run_id}/events.jsonl`,
+      summary_ref: `.forgekit/runs/${run.run_id}/summary.md`
     }, null, 2));
   } else {
     console.log(`Run: ${run.run_id}`);
     console.log(`Status: ${run.status}`);
     console.log(`Trace: .forgekit/runs/${run.run_id}/run.json`);
     console.log(`Events: .forgekit/runs/${run.run_id}/events.jsonl`);
+    console.log(`Summary: .forgekit/runs/${run.run_id}/summary.md`);
+    console.log(`Next: forge run show ${run.run_id}`);
+    console.log(`Monitor: forge tui ${run.run_id}`);
   }
   if (run.status !== "completed") {
     process.exitCode = 1;

@@ -4,6 +4,8 @@ import {
   listAdapters,
   listWorkflows
 } from "./core.js";
+import { writeJsonFile } from "./json-file.js";
+import { loadAdapterConfig } from "./project-config.js";
 
 interface DiscoveryOptions {
   subcommand?: string;
@@ -26,14 +28,15 @@ function printWorkflowHelp(): void {
   console.log(`Usage:
   forge workflow list [--json]
   forge workflow show <workflow-id> [--json]
-  forge workflow start <workflow-id> --input <text> [--yes]`);
+  forge workflow start [<workflow-id>] --input <text> [--yes]`);
 }
 
 function printAdapterHelp(): void {
   console.log(`Usage:
   forge adapter list [--json]
   forge adapter show <adapter-id> [--json]
-  forge adapter probe <adapter-id> [--json]`);
+  forge adapter probe <adapter-id> [--json]
+  forge adapter set-command <adapter-id> <command>`);
 }
 
 export async function runWorkflowDiscoveryCommand(args: string[], cwd = process.cwd()): Promise<void> {
@@ -118,6 +121,24 @@ export async function runAdapterDiscoveryCommand(args: string[], cwd = process.c
     for (const error of adapter.validation.errors) {
       console.log(`  error: ${error}`);
     }
+    return;
+  }
+
+  if (options.subcommand === "set-command") {
+    if (!options.id) {
+      throw new Error("Usage: forge adapter set-command <adapter-id> <command>");
+    }
+    const command = args[2];
+    if (!command || args.length > 3) {
+      throw new Error("Usage: forge adapter set-command <adapter-id> <command>");
+    }
+    const { adapter, path } = await loadAdapterConfig(options.id, cwd);
+    const previous = adapter.command;
+    await writeJsonFile(path, { ...adapter, command });
+    console.log(`Adapter: ${adapter.id}`);
+    console.log(`Config: ${path}`);
+    console.log(`Command: ${previous} -> ${command}`);
+    console.log(`Next: forge adapter probe ${adapter.id}`);
     return;
   }
 

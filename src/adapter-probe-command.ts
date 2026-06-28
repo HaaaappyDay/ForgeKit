@@ -33,7 +33,10 @@ function printHelp(): void {
   forge adapter probe <adapter-id> [--json]
 
 Basic probe checks the adapter config, command resolution, lightweight startup,
-and declared auth/billing/write policy. It does not validate structured output stability.`);
+and declared auth/billing/write policy. It does not validate structured output stability.
+
+If the command cannot be found, set it with:
+  forge adapter set-command <adapter-id> <command-or-path>`);
 }
 
 function printTextResult(result: AdapterProbeResult, adapterPath: string): void {
@@ -70,6 +73,12 @@ function printTextResult(result: AdapterProbeResult, adapterPath: string): void 
   }
   console.log("");
   console.log(`Result: ${result.ok ? "passed" : "failed"}`);
+  if (!result.ok && !result.resolved_command) {
+    console.log("");
+    console.log("Next:");
+    console.log(`  forge adapter set-command ${result.adapter_id} <command-or-path>`);
+    console.log(`  forge adapter probe ${result.adapter_id}`);
+  }
 }
 
 export async function runAdapterProbeCommand(args: string[], cwd = process.cwd()): Promise<void> {

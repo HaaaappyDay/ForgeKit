@@ -9,6 +9,9 @@ export type KeyName =
   | "right"
   | "top"
   | "bottom"
+  | "tab"
+  | "backspace"
+  | "char"
   | "quit"
   | "other";
 

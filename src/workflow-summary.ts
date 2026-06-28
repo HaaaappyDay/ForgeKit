@@ -12,6 +12,18 @@ function decisions(handoff: Handoff): string[] {
   return handoff.decisions.map((item) => item.decision);
 }
 
+function uniqueStrings(values: string[]): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const value of values) {
+    const normalized = value.trim();
+    if (!normalized || seen.has(normalized)) continue;
+    seen.add(normalized);
+    result.push(normalized);
+  }
+  return result;
+}
+
 function summaryPath(projectRoot: string, runId: string): string {
   return join(projectRoot, ".forgekit/runs", runId, "context/workflow-summary.json");
 }
@@ -82,9 +94,9 @@ export async function updateWorkflowSummary(
         open_questions: arrayOfStrings(handoff.open_questions)
       }
     ],
-    current_assumptions: [...existing.current_assumptions, ...arrayOfStrings(handoff.assumptions)],
-    current_risks: [...existing.current_risks, ...arrayOfStrings(handoff.risks)],
-    current_open_questions: [...existing.current_open_questions, ...arrayOfStrings(handoff.open_questions)],
+    current_assumptions: uniqueStrings([...existing.current_assumptions, ...arrayOfStrings(handoff.assumptions)]),
+    current_risks: uniqueStrings([...existing.current_risks, ...arrayOfStrings(handoff.risks)]),
+    current_open_questions: uniqueStrings([...existing.current_open_questions, ...arrayOfStrings(handoff.open_questions)]),
     next_step_hint: nextStep?.id ?? ""
   };
   await writeWorkflowSummary(projectRoot, updated);

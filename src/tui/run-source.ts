@@ -4,7 +4,7 @@ import { getRunSnapshot } from "../core.js";
 import { isAgenticRun, runJsonPath } from "../run-store.js";
 import { runEventsPath } from "../run-events.js";
 import { isNodeErrorCode } from "../node-error.js";
-import type { Run, RunEvent } from "../types.js";
+import type { AgenticRun, Run, RunEvent } from "../types.js";
 
 export interface RunMonitorSourceOptions {
   runId: string;
@@ -45,6 +45,11 @@ export class RunMonitorSource {
       throw new Error(`Run ${this.runId} is an agentic run; the v1 monitor only supports linear runs.`);
     }
     return run;
+  }
+
+  /** Reads the current run snapshot of either kind (linear or agentic). */
+  async readAnyRunSnapshot(): Promise<Run | AgenticRun> {
+    return getRunSnapshot(this.runId, this.projectRoot);
   }
 
   /**

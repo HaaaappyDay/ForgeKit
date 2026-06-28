@@ -183,7 +183,10 @@ test("validateHandoffV2Content accepts a valid handoff", async () => {
 });
 
 test("validateHandoffV2Content accepts a valid final", async () => {
-  const result = await validateHandoffV2Content(handoffV2({ next_handoff: { kind: "final" } }), expectedHandoff);
+  const result = await validateHandoffV2Content(
+    handoffV2({ next_handoff: { kind: "final", recommended_role: "", instructions: "", acceptance_criteria: [] } }),
+    expectedHandoff
+  );
   assert.deepEqual(result.content_errors, []);
   assert.equal(result.valid, true);
 });
@@ -199,7 +202,7 @@ test("validateHandoffV2Content rejects a handoff missing acceptance_criteria", a
 
 test("validateHandoffV2Content rejects a final that carries acceptance_criteria", async () => {
   const result = await validateHandoffV2Content(
-    handoffV2({ next_handoff: { kind: "final", acceptance_criteria: ["x"] } as never }),
+    handoffV2({ next_handoff: { kind: "final", recommended_role: "", instructions: "", acceptance_criteria: ["x"] } as never }),
     expectedHandoff
   );
   assert.equal(result.valid, false);

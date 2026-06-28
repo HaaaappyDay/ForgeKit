@@ -2,6 +2,7 @@
 import { readFile } from "node:fs/promises";
 import { runAdapterProbeCommand } from "./adapter-probe-command.js";
 import { runAdapterDiscoveryCommand, runWorkflowDiscoveryCommand } from "./discovery-command.js";
+import { formatErrorText } from "./error-format.js";
 import { errorResponse } from "./errors.js";
 import { runHistoryCommand } from "./history-command.js";
 import { runInitCommand } from "./init-command.js";
@@ -19,22 +20,37 @@ function printHelp(): void {
 
 Usage:
   forge --help
+
+Setup:
   forge init [--template <id>] [--project-name <name>] [--yes] [--force]
-  forge adapter probe <adapter-id> [--json]
   forge adapter list [--json]
-  forge adapter show <adapter-id> [--json]
-  forge workflow start <workflow-id> --input <text> [--yes]
-  forge workflow list [--json]
-  forge workflow show <workflow-id> [--json]
+  forge adapter probe <adapter-id> [--json]
+  forge adapter set-command <adapter-id> <command>
+
+Run:
+  forge workflow start [<workflow-id>] --input <text> [--yes]
+  forge workflow start [<workflow-id>] --input-file <path> [--yes]
+  forge tui [<run-id>]
+
+Inspect:
   forge history [--json]
   forge run show <run-id> [--json]
   forge run retry <run-id> [--json]
+  forge workflow list [--json]
+  forge adapter show <adapter-id> [--json]
+  forge workflow show <workflow-id> [--json]
   forge role list [--json]
   forge role show <role-id> [--json]
   forge role path <role-id>
-  forge tui <run-id>
+
+Schemas:
   forge schema list
   forge schema validate <schema-id> <json-file>
+
+Common first run:
+  forge init --template feature-planning --yes
+  forge adapter probe codex-local
+  forge workflow start --input "Plan a small feature" --yes
 `);
 }
 
@@ -51,7 +67,7 @@ function failError(error: unknown): void {
   if (wantsJsonOutput()) {
     console.error(JSON.stringify(errorResponse(error), null, 2));
   } else {
-    console.error(error instanceof Error ? error.message : String(error));
+    console.error(formatErrorText(error));
   }
   process.exitCode = 1;
 }

@@ -10,6 +10,18 @@ function bulletList(items: string[]): string {
   return items.map((item) => `- ${item}`).join("\n") + "\n";
 }
 
+function uniqueStrings(items: string[]): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const item of items) {
+    const normalized = item.trim();
+    if (!normalized || seen.has(normalized)) continue;
+    seen.add(normalized);
+    result.push(normalized);
+  }
+  return result;
+}
+
 function stepLine(step: RunStep): string {
   const attempt = step.attempts[step.attempts.length - 1];
   const artifact = attempt?.markdown_ref ? `, output: ${attempt.markdown_ref}` : "";
@@ -26,8 +38,23 @@ export async function writeFinalSummary(projectRoot: string, run: Run): Promise<
     const handoff = await readJsonFile<Handoff>(join(runRoot(projectRoot, run.run_id), lastCompleted.handoff_ref));
     finalNotes = handoff.markdown_body ?? handoff.summary;
   }
+  const assumptions = uniqueStrings(workflowSummary.current_assumptions);
+  const risks = uniqueStrings(workflowSummary.current_risks);
+  const openQuestions = uniqueStrings(workflowSummary.current_open_questions);
+  const failedStep = run.steps.find((step) => step.status === "failed");
+  const latestStatus = failedStep
+    ? `Run failed at ${failedStep.step_id} (${failedStep.role_id}).`
+    : run.status === "completed"
+      ? "Run completed."
+      : `Run ended with status: ${run.status}.`;
 
   const markdown = `# ForgeKit Run Summary
+
+## Result
+
+- Status: ${latestStatus}
+- Latest output: ${lastCompleted?.handoff_ref ? lastCompleted.handoff_ref : "No completed handoff was produced."}
+- Next review target: ${risks.length > 0 ? "Current Risks" : openQuestions.length > 0 ? "Current Open Questions" : "Final Notes"}
 
 ## Run
 
@@ -46,13 +73,13 @@ ${run.steps.map(stepLine).join("\n")}
 
 ## Current Assumptions
 
-${bulletList(workflowSummary.current_assumptions)}
+${bulletList(assumptions)}
 ## Current Risks
 
-${bulletList(workflowSummary.current_risks)}
+${bulletList(risks)}
 ## Current Open Questions
 
-${bulletList(workflowSummary.current_open_questions)}
+${bulletList(openQuestions)}
 ## Final Notes
 
 ${finalNotes.trim()}

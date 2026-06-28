@@ -2,6 +2,7 @@ import { isNodeErrorCode } from "./node-error.js";
 import type { JsonObject } from "./types.js";
 
 export type ForgeKitErrorCode =
+  | "command_invalid"
   | "config_missing"
   | "config_invalid"
   | "workflow_invalid"
@@ -22,6 +23,7 @@ export type ForgeKitErrorCode =
   | "artifact_not_found";
 
 export type ForgeKitErrorCategory =
+  | "command"
   | "config"
   | "workflow"
   | "role"
@@ -154,6 +156,21 @@ export function toForgeKitError(error: unknown): ForgeKitError {
       code: "config_invalid",
       message,
       category: "config",
+      retryable: false,
+      details: {}
+    });
+  }
+
+  if (
+    message.startsWith("Command not implemented") ||
+    message.startsWith("Unknown ") ||
+    message.startsWith("Usage:") ||
+    message.includes(" option:")
+  ) {
+    return new ForgeKitError({
+      code: "command_invalid",
+      message,
+      category: "command",
       retryable: false,
       details: {}
     });

@@ -3,6 +3,8 @@ import { chmod, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import test from "node:test";
+import { formatErrorText } from "../src/error-format.js";
+import { ForgeKitError } from "../src/errors.js";
 import { runInitCommand } from "../src/init-command.js";
 import { readJsonFile, writeJsonFile } from "../src/json-file.js";
 import { runWorkflow } from "../src/workflow-runner.js";
@@ -55,6 +57,38 @@ test("missing adapter command records adapter_command_not_found in events", asyn
     )));
     assert.equal(events.at(-1)?.type, "run_failed");
   });
+});
+
+test("formatErrorText includes code, retryability, and actionable next steps", () => {
+  const text = formatErrorText(new ForgeKitError({
+    code: "adapter_command_not_found",
+    message: "Command not found or not executable: codex",
+    category: "adapter",
+    retryable: false,
+    details: { adapter_id: "codex-local" }
+  }));
+
+  assert.match(text, /Error adapter_command_not_found \(adapter, retryable: no\)/);
+  assert.match(text, /forge adapter probe codex-local/);
+  assert.match(text, /forge adapter set-command codex-local <command-or-path>/);
+});
+
+test("formatErrorText guides missing config users to init", () => {
+  const text = formatErrorText(new ForgeKitError({
+    code: "config_missing",
+    message: "ForgeKit config not found.",
+    category: "config",
+    retryable: false,
+    details: {}
+  }));
+
+  assert.match(text, /forge init/);
+});
+
+test("formatErrorText classifies usage errors separately from config errors", () => {
+  const text = formatErrorText(new Error("Command not implemented: nope"));
+  assert.match(text, /Error command_invalid \(command, retryable: no\)/);
+  assert.match(text, /forge --help/);
 });
 
 test("invalid handoff output records handoff_parse_failed in events", async () => {

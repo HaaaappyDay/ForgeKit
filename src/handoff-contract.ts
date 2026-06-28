@@ -60,7 +60,7 @@ export function agenticHandoffOutputContract({
 }): string {
   const candidateList = candidates.length > 0 ? candidates.join(", ") : "(none)";
   const finalGuidance = canFinal
-    ? `- You MAY finish the workflow by setting next_handoff to {"kind": "final"} when the task is complete.`
+    ? `- You MAY finish the workflow by setting next_handoff.kind to "final" when the task is complete; final still uses the full next_handoff shape with empty recommended_role, instructions, and acceptance_criteria.`
     : `- You MUST NOT finish here: this role is not a terminal role, so next_handoff.kind must be "handoff".`;
 
   return `Handoff output contract (agentic):
@@ -101,5 +101,5 @@ ${finalGuidance}
   },
   "artifacts": []
 }
-- Required shape (final): identical, but "next_handoff": { "kind": "final" }.`;
+- Required shape (final): identical, but "next_handoff": { "kind": "final", "recommended_role": "", "instructions": "", "acceptance_criteria": [] }.`;
 }

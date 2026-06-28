@@ -115,9 +115,11 @@ test("renderMonitor marks the selected step and shows budget and events", () => 
 
   assert.match(text, /run 20260621T000000Z-demo/);
   assert.match(text, /Steps:/);
+  assert.match(text, /progress/);
   assert.match(text, /> 2\. design \(architect\)/);
   assert.ok(!lines.some((l) => l.startsWith("> 1.")), "step 1 should not be selected");
-  assert.match(text, /Budget: invocations 2\/10/);
+  assert.match(text, /Budget:/);
+  assert.match(text, /invocations 2\/10/);
   assert.match(text, /\[000001\] run_started - started/);
 });
 
